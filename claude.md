@@ -4,43 +4,85 @@
 
 A modern full-stack application for managing Google Maps business extraction queries. Features Google OAuth login, query management, data extraction from Google Maps API, version history, and Firebase storage.
 
-## Current Development Phase
+## Current Status (Updated: January 10, 2026)
 
-### Phase 4: UI/UX Redesign (Current)
-The core functionality is complete. Now focusing on aesthetic overhaul:
+### Deployment Status
+
+| Component | Status | URL |
+|-----------|--------|-----|
+| Frontend (GitHub Pages) | **Live** | https://elmandalorian-thx.github.io/maps-maps-maps-repo/ |
+| Backend API | **Not Deployed** | Needs Cloud Run or similar |
+| Firebase Auth | **Working** | Google OAuth functional |
+| Firebase Firestore | **Working** | Database operational |
+
+### Recent Fixes (January 10, 2026)
+
+1. **GitHub Pages Routing Fix**
+   - Issue: Blank page on deployed site
+   - Cause: `BrowserRouter` missing `basename` prop for subdirectory deployment
+   - Fix: Added `basename="/maps-maps-maps-repo"` to `BrowserRouter` in `App.tsx`
+
+2. **Firebase Auth Domain Fix**
+   - Issue: Google Sign-in popup opening and immediately closing
+   - Cause: `elmandalorian-thx.github.io` not in Firebase authorized domains
+   - Fix: Added domain to Firebase Console > Authentication > Settings > Authorized domains
+
+### Current Development Phase
+
+**Phase 4: UI/UX Redesign** - COMPLETE
 - Dark theme with glassmorphism effects
 - Modern, sleek design language
 - Professional dashboard experience
+- Login page with Google OAuth
+- Responsive layout
 
-### Completed Phases
-- **Phase 1**: Project Setup (frontend/backend scaffolding)
-- **Phase 2**: Authentication (Google OAuth via Firebase)
-- **Phase 3**: Core Functionality (queries, extraction, versions)
+**Phase 5: Backend Deployment** - IN PROGRESS
+- Frontend deployed to GitHub Pages
+- Backend needs deployment to Cloud Run/Railway/Render
+- API URL needs to be configured in GitHub Secrets
+
+## Development Phases
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Phase 1 | Project Setup (frontend/backend scaffolding) | Complete |
+| Phase 2 | Authentication (Google OAuth via Firebase) | Complete |
+| Phase 3 | Core Functionality (queries, extraction, versions) | Complete |
+| Phase 4 | UI/UX Redesign (dark theme, glassmorphism) | Complete |
+| Phase 5 | Backend Deployment | **In Progress** |
+| Phase 6 | Testing, Polish & Documentation | Pending |
 
 ## Tech Stack
 
 ### Frontend (`/frontend`)
-- **Framework**: React 18 + Vite + TypeScript
+- **Framework**: React 19 + Vite + TypeScript
 - **Styling**: Tailwind CSS v4 + shadcn/ui
 - **State**: Zustand (auth) + TanStack Query (server state)
-- **Routing**: React Router v6
+- **Routing**: React Router v6 (with basename for GitHub Pages)
 - **Auth**: Firebase Auth (Google OAuth)
+- **Hosting**: GitHub Pages
 
 ### Backend (`/backend`)
 - **Framework**: FastAPI (Python)
 - **Database**: Firebase Firestore
 - **Auth**: Firebase Admin SDK (token verification)
 - **Extraction**: Google Places API (New)
+- **Hosting**: Cloud Run (planned)
 
 ### Infrastructure
 - **Auth Provider**: Firebase Authentication
 - **Database**: Firebase Firestore
-- **Hosting**: Firebase Hosting (frontend) + Cloud Run (backend) - planned
+- **Frontend Hosting**: GitHub Pages
+- **Backend Hosting**: Cloud Run (planned)
+- **CI/CD**: GitHub Actions
 
 ## Project Structure
 
 ```
 Maps-maps-map-repo/
+├── .github/
+│   └── workflows/
+│       └── deploy.yml           # GitHub Pages deployment
 ├── frontend/                    # React + Vite app
 │   ├── src/
 │   │   ├── components/
@@ -54,6 +96,9 @@ Maps-maps-map-repo/
 │   │   ├── stores/              # authStore.ts
 │   │   ├── types/               # TypeScript interfaces
 │   │   └── pages/               # LoginPage, DashboardPage, QueryDetailPage
+│   ├── public/
+│   │   └── 404.html             # SPA fallback for GitHub Pages
+│   ├── vite.config.ts           # Includes base path for GitHub Pages
 │   ├── .env.local               # Firebase config (gitignored)
 │   └── package.json
 │
@@ -68,9 +113,10 @@ Maps-maps-map-repo/
 │   ├── .env                     # API keys, Firebase creds (gitignored)
 │   └── requirements.txt
 │
-├── google_maps_extractor.py     # Core extraction logic
+├── google_maps_extractor.py     # Core extraction logic (standalone)
 ├── firebase_client.py           # Legacy Firebase client
-└── claude.md                    # This file
+├── CLAUDE.md                    # This file - project documentation
+└── README.md                    # Setup guide for standalone extractor
 ```
 
 ## API Endpoints
@@ -141,26 +187,50 @@ FIREBASE_PROJECT_ID=...
 CORS_ORIGINS=["http://localhost:5173","http://localhost:5174","http://localhost:5175","http://localhost:5176"]
 ```
 
-## UI Redesign Plan (Phase 4)
+**GitHub Secrets (for deployment)**
+```
+VITE_FIREBASE_API_KEY
+VITE_FIREBASE_AUTH_DOMAIN
+VITE_FIREBASE_PROJECT_ID
+VITE_FIREBASE_STORAGE_BUCKET
+VITE_FIREBASE_MESSAGING_SENDER_ID
+VITE_FIREBASE_APP_ID
+VITE_API_URL              # Set to deployed backend URL
+```
 
-### Design Goals
-- **Dark Theme**: Deep charcoal/navy backgrounds
-- **Glassmorphism**: Frosted glass cards with backdrop blur
-- **Modern Typography**: Clean, readable fonts
-- **Accent Colors**: Vibrant gradients for CTAs
-- **Smooth Animations**: Subtle transitions and micro-interactions
+## Next Steps - Phase 5: Backend Deployment
 
-### Key Components to Redesign
-1. **Layout/Header**: Dark navbar with glass effect
-2. **Dashboard**: Glass cards for queries, gradient status badges
-3. **Query Cards**: Hover effects, subtle shadows
-4. **Add Query Dialog**: Modern modal with blur backdrop
-5. **Query Detail Page**: Glass panels, modern data table
-6. **Buttons/Forms**: Gradient buttons, styled inputs
-7. **Empty States**: Engaging illustrations
+### Option A: Google Cloud Run (Recommended)
+1. Create a `Dockerfile` in `/backend`
+2. Build and push image to Google Container Registry
+3. Deploy to Cloud Run
+4. Configure environment variables in Cloud Run
+5. Update `VITE_API_URL` GitHub Secret with Cloud Run URL
+6. Add Cloud Run URL to Firebase Auth authorized domains
+7. Redeploy frontend
 
-### Color Palette (Proposed)
-- Background: `#0a0a0f` to `#1a1a2e`
+### Option B: Railway/Render
+1. Connect GitHub repo to Railway/Render
+2. Configure build settings for FastAPI
+3. Set environment variables
+4. Get deployment URL
+5. Update `VITE_API_URL` GitHub Secret
+6. Add URL to Firebase Auth authorized domains
+7. Redeploy frontend
+
+### Backend Deployment Checklist
+- [ ] Create Dockerfile for backend
+- [ ] Set up Cloud Run / Railway / Render
+- [ ] Configure CORS for production domain
+- [ ] Set environment variables (API keys, Firebase credentials)
+- [ ] Update `VITE_API_URL` in GitHub Secrets
+- [ ] Add backend domain to Firebase authorized domains
+- [ ] Test full flow end-to-end
+
+## UI Design System
+
+### Color Palette
+- Background: `#0a0a0f` to `#1a1a2e` (gradient)
 - Card Glass: `rgba(255, 255, 255, 0.05)` with backdrop blur
 - Primary Accent: `#6366f1` (indigo) to `#8b5cf6` (violet)
 - Success: `#10b981` (emerald)
@@ -168,11 +238,12 @@ CORS_ORIGINS=["http://localhost:5173","http://localhost:5174","http://localhost:
 - Text Primary: `#f8fafc`
 - Text Secondary: `#94a3b8`
 
-## Next Steps
-
-1. **Phase 4**: Complete UI/UX redesign
-2. **Phase 5**: Testing and polish
-3. **Phase 6**: Deployment (Firebase Hosting + Cloud Run)
+### Key Components
+- Glass cards with backdrop blur
+- Gradient buttons and badges
+- Subtle hover animations
+- Dark scrollbars
+- Loading spinners with glow effects
 
 ## API Costs
 
@@ -180,3 +251,23 @@ CORS_ORIGINS=["http://localhost:5173","http://localhost:5174","http://localhost:
 - Google Places Details: $17/1,000 requests
 - Monthly free credit: $200
 - Firebase: Free tier (50K reads, 20K writes/day)
+
+## Troubleshooting
+
+### GitHub Pages shows blank page
+- Ensure `BrowserRouter` has `basename="/maps-maps-maps-repo"`
+- Check browser console for errors
+- Verify GitHub Actions deployment succeeded
+
+### Google Sign-in popup closes immediately
+- Add your domain to Firebase Console > Authentication > Settings > Authorized domains
+- For GitHub Pages: add `elmandalorian-thx.github.io`
+
+### "Failed to load queries" error
+- Backend API not deployed or not reachable
+- Check `VITE_API_URL` is set correctly
+- Verify backend is running and accessible
+
+### CORS errors
+- Add frontend domain to backend's `CORS_ORIGINS`
+- For Cloud Run: update environment variable
