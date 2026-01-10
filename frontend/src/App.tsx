@@ -31,7 +31,7 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter basename="/maps-maps-maps-repo">
         <AuthInitializer>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
