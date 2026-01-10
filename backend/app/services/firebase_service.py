@@ -1,4 +1,5 @@
 import os
+import json
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 from firebase_admin import credentials, firestore, initialize_app
@@ -22,14 +23,32 @@ class FirebaseService:
     def _initialize_firebase(self):
         """Initialize Firebase Admin SDK."""
         try:
-            if settings.FIREBASE_CREDENTIALS_PATH and os.path.exists(
+            cred = None
+
+            # Option 1: Credentials from JSON string (Cloud Run / env var)
+            if settings.FIREBASE_CREDENTIALS:
+                try:
+                    cred_dict = json.loads(settings.FIREBASE_CREDENTIALS)
+                    cred = credentials.Certificate(cred_dict)
+                    print("Using Firebase credentials from environment variable")
+                except json.JSONDecodeError as e:
+                    print(f"Failed to parse FIREBASE_CREDENTIALS JSON: {e}")
+
+            # Option 2: Credentials from file path (local development)
+            if not cred and settings.FIREBASE_CREDENTIALS_PATH and os.path.exists(
                 settings.FIREBASE_CREDENTIALS_PATH
             ):
                 cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
+                print("Using Firebase credentials from file path")
+
+            # Initialize with credentials or default
+            if cred:
                 initialize_app(cred)
             else:
-                # Use application default credentials
+                # Use application default credentials (for GCP environments)
                 initialize_app()
+                print("Using application default credentials")
+
             self.db = firestore.client()
             print("Firebase initialized successfully")
         except Exception as e:

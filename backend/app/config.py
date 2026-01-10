@@ -15,8 +15,9 @@ class Settings:
     # Google Maps API
     GOOGLE_MAPS_API_KEY: str = os.getenv("GOOGLE_MAPS_API_KEY", "")
 
-    # Firebase
+    # Firebase - supports both file path and JSON string (for Cloud Run)
     FIREBASE_CREDENTIALS_PATH: str = os.getenv("FIREBASE_CREDENTIALS_PATH", "")
+    FIREBASE_CREDENTIALS: str = os.getenv("FIREBASE_CREDENTIALS", "")  # JSON string
     FIREBASE_PROJECT_ID: str = os.getenv("FIREBASE_PROJECT_ID", "")
 
     # CORS - Parse from env or use defaults
@@ -34,6 +35,7 @@ class Settings:
             "http://localhost:5175",
             "http://localhost:5176",
             "http://localhost:3000",
+            "https://elmandalorian-thx.github.io",
         ]
 
 settings = Settings()

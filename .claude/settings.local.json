@@ -14,7 +14,15 @@
       "Bash(curl:*)",
       "Bash(python:*)",
       "Bash(git push:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "WebSearch",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nAdd cascading query feature plan with comprehensive location data\n\n- Add locations.ts with ~1,800+ cities for Canada \\(13 provinces, ~20 cities each\\)\n  and United States \\(50 states + DC, ~30 cities each\\)\n- Update CLAUDE.md with Phase 6 cascading query feature specification\n- Include TypeScript interfaces and helper functions for location data\n- Document cascading checkbox logic for bulk query creation\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nEnhance Phase 6 plan for enterprise scale + trim US cities to 20\n\nPlan Updates:\n- Compact 3-column dashboard UI design\n- Async queue system \\(fire & forget processing\\)\n- Duplicate query detection with navigation prompt\n- Scale architecture for thousands of keywords\n- Real-time Firestore updates, batch operations\n- Performance optimizations for 10,000+ queries\n\nData Fix:\n- Trim all US states from 30 to 20 cities each\n- Total cities now ~1,280 \\(Canada 230 + US 1,020\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(gcloud --version:*)",
+      "Bash(gcloud auth list:*)",
+      "Bash(gcloud config get-value:*)",
+      "Bash(docker --version:*)"
     ]
   }
 }

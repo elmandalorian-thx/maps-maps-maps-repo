@@ -1,0 +1,15 @@
+.env
+.env.*
+__pycache__/
+*.py[cod]
+*$py.class
+.git
+.gitignore
+*.md
+.vscode/
+.idea/
+venv/
+ENV/
+*.csv
+*.json
+!requirements.txt
