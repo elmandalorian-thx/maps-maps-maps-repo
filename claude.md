@@ -1,248 +1,182 @@
-# Google Maps NAP Extractor
+# Google Maps Query Dashboard
 
 ## Overview
 
-This application extracts NAP (Name, Address, Phone) and business data from Google Maps and stores it in Firebase Firestore. It's designed for marketing automation, competitive analysis, and local SEO workflows.
+A modern full-stack application for managing Google Maps business extraction queries. Features Google OAuth login, query management, data extraction from Google Maps API, version history, and Firebase storage.
 
-## Vision
+## Current Development Phase
 
-Build a complete pipeline that:
-1. **Triggers** Google Places API queries (manual or automated)
-2. **Extracts** comprehensive business data (NAP, ratings, hours, categories, etc.)
-3. **Stores** results in Firebase Firestore for persistence and real-time access
-4. **Enables** downstream workflows like lead generation, competitor monitoring, and client reporting
+### Phase 4: UI/UX Redesign (Current)
+The core functionality is complete. Now focusing on aesthetic overhaul:
+- Dark theme with glassmorphism effects
+- Modern, sleek design language
+- Professional dashboard experience
 
-## Current State
-
-### Implemented
-- `google_maps_extractor.py` - Core extraction using Google Places API (New)
-  - Text search for businesses
-  - Detailed place data extraction
-  - CSV export functionality
-  - Firebase Firestore integration
-- `firebase_client.py` - Firebase Firestore client
-  - Save individual or batch businesses
-  - Query by city, search query, or get all
-  - Find businesses without websites (leads)
-  - Extraction logging and history
-  - Deduplication using `place_id` as document ID
-- `advanced_examples.py` - Marketing automation scripts
-  - Competitive landscape analysis
-  - Lead generation (businesses without websites)
-  - NAP consistency audit
-  - Market density analysis
-  - Monthly monitoring reports
-  - All examples support `save_to_firebase=True`
-
-### Not Yet Implemented
-- Automated/scheduled queries (Cloud Functions)
-- Web interface or API endpoints
-- Historical rating change tracking
-- Email/webhook notifications
-
-## Architecture
-
-```
-┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────┐
-│  Search Query   │────▶│  Google Places API   │────▶│  Firebase DB    │
-│  (User Input)   │     │  (Text Search +      │     │  (Firestore)    │
-└─────────────────┘     │   Place Details)     │     └─────────────────┘
-                        └──────────────────────┘
-```
-
-## Firebase Setup
-
-### 1. Create Firebase Project
-1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Create a new project or select existing
-3. Enable **Firestore Database** in production mode
-
-### 2. Generate Service Account Credentials
-1. Go to Project Settings > Service Accounts
-2. Click "Generate new private key"
-3. Save the JSON file securely (e.g., `firebase-credentials.json`)
-4. **Never commit this file to git**
-
-### 3. Configure Environment
-Add to your `.env` file:
-```bash
-GOOGLE_MAPS_API_KEY=your-google-api-key
-FIREBASE_CREDENTIALS_PATH=/path/to/firebase-credentials.json
-FIREBASE_PROJECT_ID=your-project-id  # optional
-```
-
-### 4. Install Dependencies
-```bash
-pip install -r requirements.txt
-```
-
-## Firestore Collections
-
-| Collection | Purpose | Document ID |
-|------------|---------|-------------|
-| `businesses` | Main business data | `place_id` |
-| `leads` | Businesses without websites | `place_id` |
-| `competitive_analysis` | Competitor research | `place_id` |
-| `nap_audits` | NAP consistency audits | `place_id` |
-| `market_analysis` | Market density data | `place_id` |
-| `monthly_reports` | Monthly monitoring | `place_id` |
-| `extraction_logs` | Query history | auto-generated |
-
-## Data Model
-
-### Business Record
-```python
-{
-    # NAP (Core)
-    "business_name": str,
-    "street_address": str,
-    "city": str,
-    "province_state": str,
-    "postal_code": str,
-    "country": str,
-    "full_address": str,
-    "phone": str,
-    "international_phone": str,
-
-    # Digital Presence
-    "website": str,
-    "google_maps_url": str,
-    "photo_url": str,
-
-    # Reputation
-    "rating": float,
-    "user_rating_count": int,
-
-    # Operations
-    "hours": str,
-    "business_status": str,
-    "price_level": str,
-
-    # Location
-    "latitude": float,
-    "longitude": float,
-    "place_id": str,  # Unique Google identifier (used as doc ID)
-
-    # Metadata
-    "categories": str,
-    "search_query": str,
-    "created_at": str,
-    "updated_at": str
-}
-```
+### Completed Phases
+- **Phase 1**: Project Setup (frontend/backend scaffolding)
+- **Phase 2**: Authentication (Google OAuth via Firebase)
+- **Phase 3**: Core Functionality (queries, extraction, versions)
 
 ## Tech Stack
 
-- **Language**: Python 3.x
-- **Google API**: Places API (New) - uses `places.googleapis.com/v1`
+### Frontend (`/frontend`)
+- **Framework**: React 18 + Vite + TypeScript
+- **Styling**: Tailwind CSS v4 + shadcn/ui
+- **State**: Zustand (auth) + TanStack Query (server state)
+- **Routing**: React Router v6
+- **Auth**: Firebase Auth (Google OAuth)
+
+### Backend (`/backend`)
+- **Framework**: FastAPI (Python)
 - **Database**: Firebase Firestore
-- **Dependencies**: `requests`, `firebase-admin`, `python-dotenv`
+- **Auth**: Firebase Admin SDK (token verification)
+- **Extraction**: Google Places API (New)
 
-## Environment Variables
+### Infrastructure
+- **Auth Provider**: Firebase Authentication
+- **Database**: Firebase Firestore
+- **Hosting**: Firebase Hosting (frontend) + Cloud Run (backend) - planned
 
+## Project Structure
+
+```
+Maps-maps-map-repo/
+├── frontend/                    # React + Vite app
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── ui/              # shadcn/ui components
+│   │   │   ├── auth/            # LoginButton, ProtectedRoute, UserMenu
+│   │   │   ├── dashboard/       # QueryList, QueryCard, QueryFilters, AddQueryDialog
+│   │   │   ├── query-detail/    # DataPreviewTable, VersionHistory, ActionBar
+│   │   │   └── layout/          # Header, Layout
+│   │   ├── hooks/               # useQueries, useQueryDetail
+│   │   ├── services/            # firebase.ts, api.ts, auth.ts
+│   │   ├── stores/              # authStore.ts
+│   │   ├── types/               # TypeScript interfaces
+│   │   └── pages/               # LoginPage, DashboardPage, QueryDetailPage
+│   ├── .env.local               # Firebase config (gitignored)
+│   └── package.json
+│
+├── backend/                     # FastAPI server
+│   ├── app/
+│   │   ├── main.py              # FastAPI app entry
+│   │   ├── config.py            # Settings from env
+│   │   ├── routers/             # auth, queries, extraction, export, metadata
+│   │   ├── services/            # firebase_service, extractor_service
+│   │   ├── middleware/          # auth middleware (token verification)
+│   │   └── models/              # Pydantic models
+│   ├── .env                     # API keys, Firebase creds (gitignored)
+│   └── requirements.txt
+│
+├── google_maps_extractor.py     # Core extraction logic
+├── firebase_client.py           # Legacy Firebase client
+└── claude.md                    # This file
+```
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/queries` | List user's queries (with filters) |
+| POST | `/api/queries` | Create new query |
+| DELETE | `/api/queries/{id}` | Delete query |
+| POST | `/api/queries/{id}/extract` | Run Google Maps extraction |
+| GET | `/api/queries/{id}/versions` | Get version history |
+| POST | `/api/queries/{id}/versions` | Save extraction as version |
+| GET | `/api/queries/{id}/versions/{vid}` | Get version data |
+| POST | `/api/queries/{id}/versions/{vid}/save` | Save to main collection |
+| POST | `/api/export/csv` | Export to CSV |
+| GET | `/api/metadata/business-types` | Get distinct business types |
+| GET | `/api/metadata/cities` | Get distinct cities |
+
+## Firebase Collections
+
+| Collection | Purpose |
+|------------|---------|
+| `queries` | User's search queries |
+| `queries/{id}/versions` | Extraction version history |
+| `queries/{id}/versions/{vid}/businesses` | Versioned business data |
+| `businesses` | Main business collection |
+
+## Running Locally
+
+### Prerequisites
+- Node.js 18+
+- Python 3.11+
+- Firebase project with Auth + Firestore enabled
+- Google Maps API key
+
+### Frontend
 ```bash
-GOOGLE_MAPS_API_KEY=your-google-api-key
-FIREBASE_CREDENTIALS_PATH=path/to/firebase-credentials.json
-FIREBASE_PROJECT_ID=your-firebase-project  # optional if in credentials
+cd frontend
+npm install
+npm run dev  # Runs on http://localhost:5173+
 ```
 
-## Key Files
-
-| File | Purpose |
-|------|---------|
-| `google_maps_extractor.py` | Core extraction class and CLI |
-| `firebase_client.py` | Firebase Firestore client |
-| `advanced_examples.py` | Marketing automation examples |
-| `.env` | Environment variables (gitignored) |
-| `requirements.txt` | Python dependencies |
-
-## Usage
-
-### Basic Extraction with Firebase
+### Backend
 ```bash
-python google_maps_extractor.py
-# Enter query when prompted
-# Choose export option 2 (Firebase) or 3 (Both)
+cd backend
+pip install -r requirements.txt
+python -m uvicorn app.main:app --reload --port 8000
 ```
 
-### Programmatic Use
-```python
-from google_maps_extractor import GoogleMapsExtractor
+### Environment Variables
 
-extractor = GoogleMapsExtractor(api_key)
-businesses = extractor.batch_extract("naturopathic clinics in Toronto")
-
-# Save to CSV
-extractor.export_to_csv(businesses, "output.csv")
-
-# Save to Firebase
-extractor.save_to_firebase(businesses, query="naturopathic clinics in Toronto")
+**frontend/.env.local**
+```
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=...
+VITE_FIREBASE_PROJECT_ID=...
+VITE_FIREBASE_STORAGE_BUCKET=...
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
+VITE_API_URL=http://localhost:8000
 ```
 
-### Direct Firebase Client Use
-```python
-from firebase_client import FirebaseClient
-
-firebase = FirebaseClient()
-
-# Save businesses
-firebase.save_businesses(businesses)
-
-# Query businesses
-toronto_businesses = firebase.get_businesses_by_city("Toronto")
-leads = firebase.get_businesses_without_website()
-all_data = firebase.get_all_businesses(limit=100)
-
-# Get extraction history
-history = firebase.get_extraction_history()
+**backend/.env**
+```
+GOOGLE_MAPS_API_KEY=...
+FIREBASE_CREDENTIALS_PATH=/path/to/service-account.json
+FIREBASE_PROJECT_ID=...
+CORS_ORIGINS=["http://localhost:5173","http://localhost:5174","http://localhost:5175","http://localhost:5176"]
 ```
 
-### Advanced Examples with Firebase
-```python
-from advanced_examples import competitive_landscape_analysis
+## UI Redesign Plan (Phase 4)
 
-competitive_landscape_analysis(
-    api_key,
-    competitors=["Business A", "Business B"],
-    locations=["Toronto", "Vancouver"],
-    save_to_firebase=True  # Enable Firebase storage
-)
-```
+### Design Goals
+- **Dark Theme**: Deep charcoal/navy backgrounds
+- **Glassmorphism**: Frosted glass cards with backdrop blur
+- **Modern Typography**: Clean, readable fonts
+- **Accent Colors**: Vibrant gradients for CTAs
+- **Smooth Animations**: Subtle transitions and micro-interactions
 
-## Next Steps (Priority Order)
+### Key Components to Redesign
+1. **Layout/Header**: Dark navbar with glass effect
+2. **Dashboard**: Glass cards for queries, gradient status badges
+3. **Query Cards**: Hover effects, subtle shadows
+4. **Add Query Dialog**: Modern modal with blur backdrop
+5. **Query Detail Page**: Glass panels, modern data table
+6. **Buttons/Forms**: Gradient buttons, styled inputs
+7. **Empty States**: Engaging illustrations
 
-1. **Historical Tracking**
-   - Store rating snapshots over time
-   - Track review count changes
-   - Generate trend reports
+### Color Palette (Proposed)
+- Background: `#0a0a0f` to `#1a1a2e`
+- Card Glass: `rgba(255, 255, 255, 0.05)` with backdrop blur
+- Primary Accent: `#6366f1` (indigo) to `#8b5cf6` (violet)
+- Success: `#10b981` (emerald)
+- Warning: `#f59e0b` (amber)
+- Text Primary: `#f8fafc`
+- Text Secondary: `#94a3b8`
 
-2. **API Layer**
-   - FastAPI or Flask endpoints
-   - Trigger extractions via HTTP
-   - Webhook notifications
+## Next Steps
 
-3. **Scheduling**
-   - Cloud Functions for automated queries
-   - Scheduled monthly monitoring
-   - Alert on significant changes
-
-4. **Web Dashboard**
-   - View and search stored businesses
-   - Run extractions from browser
-   - Visualize market data
+1. **Phase 4**: Complete UI/UX redesign
+2. **Phase 5**: Testing and polish
+3. **Phase 6**: Deployment (Firebase Hosting + Cloud Run)
 
 ## API Costs
 
-- Text Search: $32/1,000 requests
-- Place Details: $17/1,000 requests
-- Monthly free credit: $200 (~540 searches/month)
-- Firebase Firestore: Free tier includes 50K reads, 20K writes/day
-
-## Development Notes
-
-- The Places API (New) is different from the legacy Places API
-- Max 20 results per search query
-- Rate limit: 0.5s delay between detail requests
-- `place_id` is the stable unique identifier for businesses
-- Firebase credentials should never be committed to git
-- Use batch writes for better performance with multiple records
+- Google Places Text Search: $32/1,000 requests
+- Google Places Details: $17/1,000 requests
+- Monthly free credit: $200
+- Firebase: Free tier (50K reads, 20K writes/day)
