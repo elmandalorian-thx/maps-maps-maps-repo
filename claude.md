@@ -274,60 +274,193 @@ VITE_API_URL              # Set to deployed backend URL
 - Add frontend domain to backend's `CORS_ORIGINS`
 - For Cloud Run: update environment variable
 
-## Phase 6: Cascading Query Feature
+## Phase 6: Cascading Query Feature + Scale Architecture
 
 ### Overview
-Add hierarchical location selectors (Country > Province/State > City) with cascading checkbox functionality to bulk-create queries across multiple locations.
+Add hierarchical location selectors (Country > Province/State > City) with cascading checkbox functionality to bulk-create queries across multiple locations. Designed for **enterprise scale** - thousands of keywords across 1,280+ locations.
 
 ### Location Data
 Location data is stored in `frontend/src/data/locations.ts`:
-- **Canada**: 13 provinces/territories, ~20 cities each (by population)
-- **United States**: 50 states + DC, ~30 cities each (by population)
-- Total: ~1,800+ cities with comprehensive coverage
+- **Canada**: 13 provinces/territories, 20 cities each (by population)
+- **United States**: 50 states + DC, 20 cities each (by population)
+- **Total**: ~1,280 cities with comprehensive coverage
+
+### Design Goals
+- **Scale**: Support thousands of keywords × 1,280 locations = millions of potential queries
+- **Performance**: Async processing, background jobs, queue management
+- **UX**: Compact 3-column layout, real-time status updates, zero babysitting
+
+---
 
 ### Feature Requirements
 
-#### 1. Add Query Dialog Enhancement
+#### 1. Compact Dashboard UI (3-Column Layout)
+- **Query cards at 50% current size** - Fit 3 columns on page
+- **Dense information display** - Status badge, location, keyword visible at glance
+- **Color-coded status**: Pending (gray), Running (blue pulse), Complete (green), Error (red)
+- **Bulk selection** - Select multiple queries for batch actions
+
+#### 2. Add Query Dialog Enhancement
 - **Country Selector**: Dropdown with Canada and United States
 - **Province/State Selector**: Cascading dropdown based on selected country
 - **City Selector**: Cascading dropdown based on selected province/state
 - **Cascade Checkbox**: When ticked, expands the query to multiple locations
+- **Duplicate Detection**:
+  - Check if query already exists before creation
+  - Show error modal with link to existing query
+  - "View Existing Query" button navigates to query detail page
 
-#### 2. Cascading Logic
+#### 3. Cascading Logic
 | Checkbox State | Selection | Result |
 |----------------|-----------|--------|
 | Unchecked | Canada > Ontario > Kingston | Creates 1 query for Kingston, ON |
-| Checked | Canada > Ontario > Kingston | Creates ~20 queries (all Ontario cities) |
-| Checked | Canada > Ontario > (none) | Creates ~20 queries (all Ontario cities) |
+| Checked | Canada > Ontario > Kingston | Creates 20 queries (all Ontario cities) |
+| Checked | Canada > Ontario > (none) | Creates 20 queries (all Ontario cities) |
 | Checked | Canada > (none) > (none) | Creates ~260 queries (all Canadian cities) |
-| Checked | (none) > (none) > (none) | Creates ~1,800 queries (all cities) |
+| Checked | (none) > (none) > (none) | Creates ~1,280 queries (all cities) |
 
-#### 3. Dashboard Filter Enhancement
+#### 4. Async Queue System (Fire & Forget)
+- **Queue-based processing**: Hit play, walk away
+- **Background worker**: Processes queries sequentially or in batches
+- **Firebase real-time updates**: Status changes reflected instantly
+- **Batch operations**: Run all pending, pause all, retry failed
+- **Progress persistence**: Survives page refresh, browser close
+
+#### 5. Dashboard Filter Enhancement
 - Add Country filter dropdown
 - Add Province/State filter dropdown (cascades based on country)
 - Add City filter dropdown (cascades based on province/state)
+- Add Status filter (Pending, Running, Complete, Error)
+- Add Keyword search
+
+---
+
+### Technical Architecture
+
+#### Queue System Design
+```
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│   Frontend      │────▶│   Backend API    │────▶│   Firebase      │
+│   (React)       │     │   (FastAPI)      │     │   (Firestore)   │
+└─────────────────┘     └──────────────────┘     └─────────────────┘
+        │                       │                        │
+        │                       ▼                        │
+        │               ┌──────────────────┐             │
+        │               │  Background      │             │
+        │               │  Worker/Queue    │◀────────────┘
+        │               │  (Celery/Redis   │
+        │               │   or Firebase    │
+        │               │   Cloud Tasks)   │
+        │               └──────────────────┘
+        │                       │
+        └───────────────────────┘
+              Real-time updates via
+              Firestore listeners
+```
+
+#### Query States
+| State | Description |
+|-------|-------------|
+| `pending` | Created, waiting in queue |
+| `queued` | Added to processing queue |
+| `running` | Currently extracting data |
+| `complete` | Extraction finished, data saved |
+| `error` | Failed with error message |
+| `paused` | Manually paused by user |
+
+#### Firestore Collections (Updated)
+```
+queries/{queryId}
+  - keyword: string
+  - city: string
+  - province: string
+  - country: string
+  - status: 'pending' | 'queued' | 'running' | 'complete' | 'error' | 'paused'
+  - createdAt: timestamp
+  - startedAt: timestamp | null
+  - completedAt: timestamp | null
+  - error: string | null
+  - resultCount: number
+  - userId: string
+
+queries/{queryId}/versions/{versionId}
+  - Same as before
+
+queue_jobs/{jobId}
+  - queryIds: string[]  // Batch of queries
+  - status: 'pending' | 'processing' | 'complete' | 'failed'
+  - progress: { completed: number, total: number }
+  - createdAt: timestamp
+  - userId: string
+```
+
+---
 
 ### Implementation Checklist
+
+#### Phase 6a: Location & Duplicate Detection
 - [x] Create location data file (`frontend/src/data/locations.ts`)
+- [ ] Trim US states to 20 cities each
 - [ ] Update AddQueryDialog with location selectors
 - [ ] Implement cascading dropdown logic
-- [ ] Add cascade checkbox with confirmation modal
-- [ ] Update QueryFilters with location filters
-- [ ] Update query creation API to handle bulk creation
-- [ ] Add progress indicator for bulk query creation
-- [ ] Test with various cascade combinations
+- [ ] Add duplicate query detection with navigation prompt
+
+#### Phase 6b: Compact UI
+- [ ] Redesign QueryCard to 50% size
+- [ ] Implement 3-column responsive grid
+- [ ] Add compact status indicators
+- [ ] Add bulk selection checkboxes
+
+#### Phase 6c: Async Queue System
+- [ ] Design queue system architecture
+- [ ] Implement queue API endpoints
+- [ ] Add background worker (Cloud Tasks or Celery)
+- [ ] Implement Firestore real-time listeners
+- [ ] Add batch operations (run all, pause all, retry failed)
+- [ ] Add progress indicators and ETA
+
+#### Phase 6d: Dashboard Filters
+- [ ] Add Country filter dropdown
+- [ ] Add Province/State filter dropdown
+- [ ] Add City filter dropdown
+- [ ] Add Status filter
+- [ ] Add Keyword search
+- [ ] Implement filter persistence (URL params or localStorage)
+
+---
+
+### Scale Considerations
+
+#### Performance Optimizations
+- **Pagination**: Virtualized list for 10,000+ queries
+- **Batch writes**: Create queries in batches of 500
+- **Firestore indexes**: Compound indexes for filter combinations
+- **Caching**: Cache location data, filter options
+- **Debouncing**: Debounce filter changes, search input
+
+#### Rate Limiting
+- **Google Places API**: 100 QPS limit
+- **Batch processing**: 1-2 queries per second with delays
+- **Retry logic**: Exponential backoff for failures
+- **Cost awareness**: Show estimated API cost before bulk operations
+
+#### Monitoring
+- **Dashboard stats**: Total queries, pending, running, complete, failed
+- **Cost tracker**: Running total of API costs
+- **Error aggregation**: Group similar errors for bulk retry
+
+---
 
 ### Data Structure
 ```typescript
 interface City {
   name: string;
-  province: string;
-  country: string;
+  population?: number;
 }
 
 interface Province {
   name: string;
-  abbreviation: string;
+  code: string;
   cities: City[];
 }
 
@@ -335,6 +468,20 @@ interface Country {
   name: string;
   code: string;
   provinces: Province[];
+}
+
+interface Query {
+  id: string;
+  keyword: string;
+  city: string;
+  province: string;
+  country: string;
+  status: 'pending' | 'queued' | 'running' | 'complete' | 'error' | 'paused';
+  createdAt: Date;
+  startedAt?: Date;
+  completedAt?: Date;
+  error?: string;
+  resultCount?: number;
 }
 ```
 
@@ -351,3 +498,6 @@ interface Country {
 - Progress bar during bulk query creation
 - Ability to cancel mid-operation
 - Clear visual indication of cascade mode
+- **Real-time status updates** - No refresh needed
+- **Estimated completion time** - Based on queue position and avg processing time
+- **Cost estimation** - Show projected API costs before execution
