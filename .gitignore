@@ -14,8 +14,22 @@ ENV/
 
 # Output files
 *.csv
-*.json
+
+# Firebase credentials (keep these private!)
+*-firebase-adminsdk-*.json
+firebase-credentials.json
+service-account*.json
+
+# Node
+node_modules/
+dist/
+.cache/
 
 # IDE
 .vscode/
 .idea/
+
+# OS
+.DS_Store
+Thumbs.db
+nul

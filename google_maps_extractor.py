@@ -9,6 +9,10 @@ import csv
 from datetime import datetime
 import requests
 from typing import List, Dict, Optional
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 try:
     from firebase_client import FirebaseClient

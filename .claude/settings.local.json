@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tailwindcss:*)",
+      "Bash(./node_modules/.bin/tailwindcss:*)",
+      "Bash(dir:*)",
+      "Bash(python -m uvicorn:*)",
+      "Bash(timeout:*)",
+      "Bash(npm run dev:*)",
+      "Bash(ping:*)",
+      "Bash(npx tsc:*)",
+      "Bash(curl:*)",
+      "Bash(python:*)"
+    ]
+  }
+}
