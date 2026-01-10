@@ -10,6 +10,12 @@ from datetime import datetime
 import requests
 from typing import List, Dict, Optional
 
+try:
+    from firebase_client import FirebaseClient
+    FIREBASE_AVAILABLE = True
+except ImportError:
+    FIREBASE_AVAILABLE = False
+
 class GoogleMapsExtractor:
     """Extract business data from Google Maps using Places API"""
     
@@ -212,9 +218,54 @@ class GoogleMapsExtractor:
             
             print(f"\n✓ Data exported to: {filename}")
             print(f"  Total records: {len(businesses)}")
-            
+
         except Exception as e:
             print(f"✗ Error exporting to CSV: {e}")
+
+    def save_to_firebase(self, businesses: List[Dict], query: str = "",
+                         credentials_path: Optional[str] = None) -> Dict:
+        """
+        Save business data to Firebase Firestore
+
+        Args:
+            businesses: List of business data dictionaries
+            query: Original search query (for tracking)
+            credentials_path: Path to Firebase credentials JSON
+
+        Returns:
+            Summary dict with saved/error counts
+        """
+        if not FIREBASE_AVAILABLE:
+            print("✗ Firebase not available. Install firebase-admin: pip install firebase-admin")
+            return {"saved": 0, "errors": len(businesses)}
+
+        if not businesses:
+            print("No data to save.")
+            return {"saved": 0, "errors": 0}
+
+        try:
+            # Initialize Firebase client
+            firebase = FirebaseClient(credentials_path)
+
+            # Add search query to each business for tracking
+            if query:
+                for business in businesses:
+                    business["search_query"] = query
+
+            # Save businesses
+            result = firebase.save_businesses(businesses)
+
+            # Log the extraction
+            firebase.save_extraction_log(query, len(businesses))
+
+            print(f"\n✓ Data saved to Firebase")
+            print(f"  Saved: {result['saved']} | Errors: {result['errors']}")
+
+            return result
+
+        except Exception as e:
+            print(f"✗ Error saving to Firebase: {e}")
+            return {"saved": 0, "errors": len(businesses)}
 
 
 def main():
@@ -259,12 +310,32 @@ def main():
     # STEP 4: Extract data
     businesses = extractor.batch_extract(query)
     
-    # STEP 5: Export to CSV
+    # STEP 5: Export options
     if businesses:
-        custom_filename = input("\nEnter filename (press Enter for auto-generated): ").strip()
-        filename = custom_filename if custom_filename else None
-        extractor.export_to_csv(businesses, filename)
-        
+        print("\n" + "=" * 60)
+        print("💾 EXPORT OPTIONS")
+        print("=" * 60)
+        print("1. CSV file only")
+        print("2. Firebase only")
+        print("3. Both CSV and Firebase")
+
+        export_choice = input("\nChoose export option [1]: ").strip() or "1"
+
+        # CSV Export
+        if export_choice in ["1", "3"]:
+            custom_filename = input("\nEnter filename (press Enter for auto-generated): ").strip()
+            filename = custom_filename if custom_filename else None
+            extractor.export_to_csv(businesses, filename)
+
+        # Firebase Export
+        if export_choice in ["2", "3"]:
+            if FIREBASE_AVAILABLE:
+                extractor.save_to_firebase(businesses, query)
+            else:
+                print("\n⚠️  Firebase not available.")
+                print("   Install with: pip install firebase-admin")
+                print("   Set FIREBASE_CREDENTIALS_PATH environment variable")
+
         # Show sample data
         print("\n" + "=" * 60)
         print("📋 SAMPLE DATA (First Result)")
@@ -276,7 +347,7 @@ def main():
         print(f"Website: {sample['website']}")
         print(f"Rating: {sample['rating']} ({sample['user_rating_count']} reviews)")
         print(f"Categories: {sample['categories']}")
-    
+
     print("\n✅ Done!\n")
 
 

@@ -9,15 +9,27 @@ import csv
 from datetime import datetime
 import json
 
+try:
+    from firebase_client import FirebaseClient
+    FIREBASE_AVAILABLE = True
+except ImportError:
+    FIREBASE_AVAILABLE = False
+
 
 # ============================================================================
 # EXAMPLE 1: Multi-Location Competitive Analysis
 # ============================================================================
 
-def competitive_landscape_analysis(api_key, competitors, locations):
+def competitive_landscape_analysis(api_key, competitors, locations, save_to_firebase=False):
     """
     Extract data for specific competitors across multiple locations
     Great for competitive intelligence and market analysis
+
+    Args:
+        api_key: Google Maps API key
+        competitors: List of competitor names to search
+        locations: List of locations to search in
+        save_to_firebase: If True, save results to Firebase
     """
     extractor = GoogleMapsExtractor(api_key)
     all_results = []
@@ -41,6 +53,12 @@ def competitive_landscape_analysis(api_key, competitors, locations):
     if all_results:
         filename = f"competitive_analysis_{datetime.now().strftime('%Y%m%d')}.csv"
         extractor.export_to_csv(all_results, filename)
+
+        # Save to Firebase if requested
+        if save_to_firebase and FIREBASE_AVAILABLE:
+            firebase = FirebaseClient()
+            firebase.save_businesses(all_results, collection="competitive_analysis")
+            print(f"✓ Saved {len(all_results)} results to Firebase")
 
         # Generate summary report
         generate_competitive_summary(all_results)
@@ -87,10 +105,16 @@ def generate_competitive_summary(businesses):
 # EXAMPLE 2: Lead Generation - Find Businesses Without Websites
 # ============================================================================
 
-def find_lead_opportunities(api_key, query, min_rating=4.0):
+def find_lead_opportunities(api_key, query, min_rating=4.0, save_to_firebase=False):
     """
     Find highly-rated businesses without websites
     Perfect for service provider outreach
+
+    Args:
+        api_key: Google Maps API key
+        query: Search query
+        min_rating: Minimum rating filter (default 4.0)
+        save_to_firebase: If True, save results to Firebase
     """
     extractor = GoogleMapsExtractor(api_key)
     businesses = extractor.batch_extract(query)
@@ -107,6 +131,12 @@ def find_lead_opportunities(api_key, query, min_rating=4.0):
     if leads:
         filename = f"lead_opportunities_{datetime.now().strftime('%Y%m%d')}.csv"
         extractor.export_to_csv(leads, filename)
+
+        # Save to Firebase if requested
+        if save_to_firebase and FIREBASE_AVAILABLE:
+            firebase = FirebaseClient()
+            firebase.save_businesses(leads, collection="leads")
+            print(f"✓ Saved {len(leads)} leads to Firebase")
 
         print(f"\n🎯 Found {len(leads)} lead opportunities!")
         print(f"   High-rated businesses without websites")
@@ -125,10 +155,16 @@ def find_lead_opportunities(api_key, query, min_rating=4.0):
 # EXAMPLE 3: NAP Consistency Audit for Client
 # ============================================================================
 
-def nap_consistency_audit(api_key, business_name, expected_locations):
+def nap_consistency_audit(api_key, business_name, expected_locations, save_to_firebase=False):
     """
     Check NAP consistency across multiple locations
     Essential for multi-location businesses
+
+    Args:
+        api_key: Google Maps API key
+        business_name: Name of business to audit
+        expected_locations: List of locations to check
+        save_to_firebase: If True, save results to Firebase
     """
     extractor = GoogleMapsExtractor(api_key)
 
@@ -143,6 +179,7 @@ def nap_consistency_audit(api_key, business_name, expected_locations):
 
         for business in businesses:
             business['expected_location'] = location
+            business['audit_business'] = business_name
 
         all_listings.extend(businesses)
 
@@ -152,6 +189,12 @@ def nap_consistency_audit(api_key, business_name, expected_locations):
     # Export full audit
     filename = f"nap_audit_{business_name.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.csv"
     extractor.export_to_csv(all_listings, filename)
+
+    # Save to Firebase if requested
+    if save_to_firebase and FIREBASE_AVAILABLE:
+        firebase = FirebaseClient()
+        firebase.save_businesses(all_listings, collection="nap_audits")
+        print(f"✓ Saved {len(all_listings)} audit results to Firebase")
 
     return all_listings, inconsistencies
 
@@ -195,10 +238,16 @@ def analyze_nap_consistency(listings):
 # EXAMPLE 4: Market Density Analysis
 # ============================================================================
 
-def market_density_analysis(api_key, business_type, cities):
+def market_density_analysis(api_key, business_type, cities, save_to_firebase=False):
     """
     Analyze market saturation across different cities
     Useful for expansion planning
+
+    Args:
+        api_key: Google Maps API key
+        business_type: Type of business to analyze
+        cities: List of cities to compare
+        save_to_firebase: If True, save results to Firebase
     """
     extractor = GoogleMapsExtractor(api_key)
 
@@ -231,10 +280,17 @@ def market_density_analysis(api_key, business_type, cities):
         for business in data['businesses']:
             business['analysis_city'] = city
             business['market_density'] = data['count']
+            business['business_type'] = business_type
             all_businesses.append(business)
 
     filename = f"market_density_{business_type.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.csv"
     extractor.export_to_csv(all_businesses, filename)
+
+    # Save to Firebase if requested
+    if save_to_firebase and FIREBASE_AVAILABLE:
+        firebase = FirebaseClient()
+        firebase.save_businesses(all_businesses, collection="market_analysis")
+        print(f"✓ Saved {len(all_businesses)} results to Firebase")
 
     return results
 
@@ -249,12 +305,18 @@ def calculate_average_rating(businesses):
 # EXAMPLE 5: Automated Monthly Monitoring
 # ============================================================================
 
-def monthly_monitoring_report(api_key, client_queries):
+def monthly_monitoring_report(api_key, client_queries, save_to_firebase=False):
     """
     Generate monthly monitoring report for multiple clients
     Perfect for recurring reporting
+
+    Args:
+        api_key: Google Maps API key
+        client_queries: Dict of {client_name: search_query}
+        save_to_firebase: If True, save results to Firebase
     """
     extractor = GoogleMapsExtractor(api_key)
+    firebase = FirebaseClient() if save_to_firebase and FIREBASE_AVAILABLE else None
 
     timestamp = datetime.now().strftime("%Y-%m")
     report_data = {}
@@ -262,6 +324,11 @@ def monthly_monitoring_report(api_key, client_queries):
     for client_name, query in client_queries.items():
         print(f"\n📊 Processing: {client_name}")
         businesses = extractor.batch_extract(query, delay=0.5)
+
+        # Add client metadata
+        for business in businesses:
+            business['client_name'] = client_name
+            business['report_month'] = timestamp
 
         # Store monthly snapshot
         report_data[client_name] = {
@@ -276,6 +343,10 @@ def monthly_monitoring_report(api_key, client_queries):
         filename = f"{client_name.replace(' ', '_')}_monthly_{timestamp}.csv"
         extractor.export_to_csv(businesses, filename)
 
+        # Save to Firebase if requested
+        if firebase:
+            firebase.save_businesses(businesses, collection="monthly_reports")
+
     # Generate summary JSON for tracking
     summary_file = f"monthly_summary_{timestamp}.json"
     with open(summary_file, 'w') as f:
@@ -288,6 +359,9 @@ def monthly_monitoring_report(api_key, client_queries):
             for client, data in report_data.items()
         }
         json.dump(summary, f, indent=2)
+
+    if firebase:
+        print(f"✓ All results saved to Firebase")
 
     print(f"\n✅ Monthly monitoring complete!")
     print(f"   Summary saved to: {summary_file}")
@@ -311,33 +385,38 @@ if __name__ == "__main__":
     print("=" * 80)
 
     # Uncomment the example you want to run:
+    # Add save_to_firebase=True to any function to save results to Firebase
 
     # Example 1: Competitive Analysis
     # competitive_landscape_analysis(
     #     api_key,
     #     competitors=["Advanced Women's Health", "Naturopathic Clinic"],
-    #     locations=["Toronto", "Vancouver", "Kingston Ontario"]
+    #     locations=["Toronto", "Vancouver", "Kingston Ontario"],
+    #     save_to_firebase=True  # Save to Firebase
     # )
 
     # Example 2: Lead Generation
     # find_lead_opportunities(
     #     api_key,
     #     query="dental clinics in Toronto",
-    #     min_rating=4.5
+    #     min_rating=4.5,
+    #     save_to_firebase=True  # Save to Firebase
     # )
 
     # Example 3: NAP Audit
     # nap_consistency_audit(
     #     api_key,
     #     business_name="Advanced Women's Health",
-    #     expected_locations=["Toronto", "Vancouver", "Kingston"]
+    #     expected_locations=["Toronto", "Vancouver", "Kingston"],
+    #     save_to_firebase=True  # Save to Firebase
     # )
 
     # Example 4: Market Density
     # market_density_analysis(
     #     api_key,
     #     business_type="naturopathic clinics",
-    #     cities=["Toronto", "Vancouver", "Calgary", "Montreal", "Ottawa"]
+    #     cities=["Toronto", "Vancouver", "Calgary", "Montreal", "Ottawa"],
+    #     save_to_firebase=True  # Save to Firebase
     # )
 
     # Example 5: Monthly Monitoring
@@ -346,7 +425,8 @@ if __name__ == "__main__":
     #     "Competitor A": "naturopathic clinic Toronto",
     #     "Competitor B": "holistic health Vancouver"
     # }
-    # monthly_monitoring_report(api_key, client_queries)
+    # monthly_monitoring_report(api_key, client_queries, save_to_firebase=True)
 
     print("\n💡 Uncomment an example above to run it!")
+    print("   Add save_to_firebase=True to save results to Firebase")
     print("   Edit the parameters to match your specific use case.\n")
