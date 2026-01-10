@@ -1,7 +1,7 @@
+import traceback
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
-from .services.firebase_service import FirebaseService
 from .routers import (
     auth_router,
     queries_router,
@@ -9,9 +9,6 @@ from .routers import (
     export_router,
     metadata_router,
 )
-
-# Initialize Firebase at startup
-firebase_service = FirebaseService()
 
 app = FastAPI(
     title="Maps Query Dashboard API",
@@ -48,3 +45,15 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize Firebase on startup (non-blocking)."""
+    try:
+        from .services.firebase_service import FirebaseService
+        firebase_service = FirebaseService()
+        print("Firebase initialized successfully on startup")
+    except Exception as e:
+        print(f"Firebase initialization error on startup: {e}")
+        traceback.print_exc()
