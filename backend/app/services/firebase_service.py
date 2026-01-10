@@ -1,5 +1,6 @@
 import os
 import json
+import base64
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 from firebase_admin import credentials, firestore, initialize_app
@@ -25,8 +26,19 @@ class FirebaseService:
         try:
             cred = None
 
-            # Option 1: Credentials from JSON string (Cloud Run / env var)
-            if settings.FIREBASE_CREDENTIALS:
+            # Option 1: Credentials from base64-encoded JSON (Cloud Run)
+            firebase_creds_b64 = os.getenv("FIREBASE_CREDENTIALS_B64", "")
+            if firebase_creds_b64:
+                try:
+                    cred_json = base64.b64decode(firebase_creds_b64).decode("utf-8")
+                    cred_dict = json.loads(cred_json)
+                    cred = credentials.Certificate(cred_dict)
+                    print("Using Firebase credentials from base64-encoded env var")
+                except Exception as e:
+                    print(f"Failed to parse FIREBASE_CREDENTIALS_B64: {e}")
+
+            # Option 2: Credentials from JSON string (Cloud Run / env var)
+            if not cred and settings.FIREBASE_CREDENTIALS:
                 try:
                     cred_dict = json.loads(settings.FIREBASE_CREDENTIALS)
                     cred = credentials.Certificate(cred_dict)
@@ -34,7 +46,7 @@ class FirebaseService:
                 except json.JSONDecodeError as e:
                     print(f"Failed to parse FIREBASE_CREDENTIALS JSON: {e}")
 
-            # Option 2: Credentials from file path (local development)
+            # Option 3: Credentials from file path (local development)
             if not cred and settings.FIREBASE_CREDENTIALS_PATH and os.path.exists(
                 settings.FIREBASE_CREDENTIALS_PATH
             ):
