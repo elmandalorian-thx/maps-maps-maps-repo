@@ -5,6 +5,8 @@ import path from 'path'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  // GitHub Pages deploys to /repo-name/ subdirectory
+  base: '/maps-maps-maps-repo/',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

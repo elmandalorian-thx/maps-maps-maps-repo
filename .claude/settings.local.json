@@ -12,7 +12,9 @@
       "Bash(ping:*)",
       "Bash(npx tsc:*)",
       "Bash(curl:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(git push:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }
