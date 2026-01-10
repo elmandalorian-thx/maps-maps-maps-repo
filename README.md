@@ -266,3 +266,4 @@ Want to enhance this tool? Consider adding:
 - Airtable/CRM integration
 - Email alerts for new listings
 - Multi-language support
+# Trigger rebuild
