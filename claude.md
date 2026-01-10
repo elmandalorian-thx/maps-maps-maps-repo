@@ -50,7 +50,8 @@ A modern full-stack application for managing Google Maps business extraction que
 | Phase 3 | Core Functionality (queries, extraction, versions) | Complete |
 | Phase 4 | UI/UX Redesign (dark theme, glassmorphism) | Complete |
 | Phase 5 | Backend Deployment | **In Progress** |
-| Phase 6 | Testing, Polish & Documentation | Pending |
+| Phase 6 | Cascading Query Feature | **Planned** |
+| Phase 7 | Testing, Polish & Documentation | Pending |
 
 ## Tech Stack
 
@@ -91,6 +92,7 @@ Maps-maps-map-repo/
 │   │   │   ├── dashboard/       # QueryList, QueryCard, QueryFilters, AddQueryDialog
 │   │   │   ├── query-detail/    # DataPreviewTable, VersionHistory, ActionBar
 │   │   │   └── layout/          # Header, Layout
+│   │   ├── data/                # Static data (locations.ts)
 │   │   ├── hooks/               # useQueries, useQueryDetail
 │   │   ├── services/            # firebase.ts, api.ts, auth.ts
 │   │   ├── stores/              # authStore.ts
@@ -271,3 +273,81 @@ VITE_API_URL              # Set to deployed backend URL
 ### CORS errors
 - Add frontend domain to backend's `CORS_ORIGINS`
 - For Cloud Run: update environment variable
+
+## Phase 6: Cascading Query Feature
+
+### Overview
+Add hierarchical location selectors (Country > Province/State > City) with cascading checkbox functionality to bulk-create queries across multiple locations.
+
+### Location Data
+Location data is stored in `frontend/src/data/locations.ts`:
+- **Canada**: 13 provinces/territories, ~20 cities each (by population)
+- **United States**: 50 states + DC, ~30 cities each (by population)
+- Total: ~1,800+ cities with comprehensive coverage
+
+### Feature Requirements
+
+#### 1. Add Query Dialog Enhancement
+- **Country Selector**: Dropdown with Canada and United States
+- **Province/State Selector**: Cascading dropdown based on selected country
+- **City Selector**: Cascading dropdown based on selected province/state
+- **Cascade Checkbox**: When ticked, expands the query to multiple locations
+
+#### 2. Cascading Logic
+| Checkbox State | Selection | Result |
+|----------------|-----------|--------|
+| Unchecked | Canada > Ontario > Kingston | Creates 1 query for Kingston, ON |
+| Checked | Canada > Ontario > Kingston | Creates ~20 queries (all Ontario cities) |
+| Checked | Canada > Ontario > (none) | Creates ~20 queries (all Ontario cities) |
+| Checked | Canada > (none) > (none) | Creates ~260 queries (all Canadian cities) |
+| Checked | (none) > (none) > (none) | Creates ~1,800 queries (all cities) |
+
+#### 3. Dashboard Filter Enhancement
+- Add Country filter dropdown
+- Add Province/State filter dropdown (cascades based on country)
+- Add City filter dropdown (cascades based on province/state)
+
+### Implementation Checklist
+- [x] Create location data file (`frontend/src/data/locations.ts`)
+- [ ] Update AddQueryDialog with location selectors
+- [ ] Implement cascading dropdown logic
+- [ ] Add cascade checkbox with confirmation modal
+- [ ] Update QueryFilters with location filters
+- [ ] Update query creation API to handle bulk creation
+- [ ] Add progress indicator for bulk query creation
+- [ ] Test with various cascade combinations
+
+### Data Structure
+```typescript
+interface City {
+  name: string;
+  province: string;
+  country: string;
+}
+
+interface Province {
+  name: string;
+  abbreviation: string;
+  cities: City[];
+}
+
+interface Country {
+  name: string;
+  code: string;
+  provinces: Province[];
+}
+```
+
+### Helper Functions Available
+- `getCountries()` - Returns list of all countries
+- `getProvinces(countryCode)` - Returns provinces for a country
+- `getCities(countryCode, provinceAbbr)` - Returns cities for a province
+- `getAllCitiesInCountry(countryCode)` - Returns all cities in a country
+- `getAllCitiesInProvince(countryCode, provinceAbbr)` - Returns all cities in a province
+
+### UI/UX Considerations
+- Show estimated query count before cascade execution
+- Confirmation modal for large cascade operations (>50 queries)
+- Progress bar during bulk query creation
+- Ability to cancel mid-operation
+- Clear visual indication of cascade mode
