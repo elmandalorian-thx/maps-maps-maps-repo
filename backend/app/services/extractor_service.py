@@ -1,12 +1,12 @@
-import sys
-import os
 import time
 from typing import List, Dict, Any
 
-# Add parent directory to path to import existing extractor
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
-
+# Import from backend root (copied during Docker build)
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 from google_maps_extractor import GoogleMapsExtractor
+
 from ..config import settings
 
 
