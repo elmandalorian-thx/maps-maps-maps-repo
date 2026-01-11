@@ -11,6 +11,7 @@ interface ActionBarProps {
   isSaving: boolean
   hasData: boolean
   hasUnsavedData: boolean
+  hasSelectedVersion: boolean
 }
 
 export function ActionBar({
@@ -22,6 +23,7 @@ export function ActionBar({
   isSaving,
   hasData,
   hasUnsavedData,
+  hasSelectedVersion,
 }: ActionBarProps) {
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -67,8 +69,9 @@ export function ActionBar({
       <Button
         variant="outline"
         onClick={onSaveToFirebase}
-        disabled={!hasData || isSaving}
-        className="gap-2 rounded-xl gradient-success glow-success hover:scale-105 transition-transform text-white border-0"
+        disabled={!hasSelectedVersion || isSaving}
+        title={!hasSelectedVersion ? "Save as version first, then select it" : ""}
+        className="gap-2 rounded-xl gradient-success glow-success hover:scale-105 transition-transform text-white border-0 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isSaving ? (
           <LoadingSpinner size="sm" />

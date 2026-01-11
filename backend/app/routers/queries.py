@@ -1,5 +1,5 @@
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 from ..middleware.auth import get_current_user
 from ..models.auth import TokenData
 from ..models.query import (
@@ -132,7 +132,7 @@ async def list_versions(
 @router.post("/{query_id}/versions", response_model=QueryVersion)
 async def create_version(
     query_id: str,
-    businesses: List[dict],
+    businesses: List[dict] = Body(..., embed=True),
     current_user: TokenData = Depends(get_current_user),
     firebase: FirebaseService = Depends(get_firebase_service),
 ):

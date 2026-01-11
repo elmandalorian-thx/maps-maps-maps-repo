@@ -1,7 +1,7 @@
 import csv
 import io
 from typing import List
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Body
 from fastapi.responses import StreamingResponse
 from ..middleware.auth import get_current_user
 from ..models.auth import TokenData
@@ -11,7 +11,7 @@ router = APIRouter(prefix="/export", tags=["export"])
 
 @router.post("/csv")
 async def export_to_csv(
-    businesses: List[dict],
+    businesses: List[dict] = Body(..., embed=True),
     current_user: TokenData = Depends(get_current_user),
 ):
     """Generate CSV file from business data."""

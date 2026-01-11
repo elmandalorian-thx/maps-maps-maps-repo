@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useParams, useNavigate, Link } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
 import { ArrowLeft, Database } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { StatusBadge } from "@/components/dashboard/StatusBadge"
@@ -54,16 +55,25 @@ export function QueryDetailPage() {
       setHasUnsavedData(true)
       setSelectedVersionId(null)
       queryClient.invalidateQueries({ queryKey: ["query", id] })
+      toast.success(`Extracted ${data.businesses.length} businesses`)
+    },
+    onError: (error) => {
+      toast.error(`Extraction failed: ${error.message}`)
     },
   })
 
   // Save version mutation
   const saveVersionMutation = useMutation({
     mutationFn: () => createVersion(id!, previewData),
-    onSuccess: () => {
+    onSuccess: (newVersion) => {
       setHasUnsavedData(false)
+      setSelectedVersionId(newVersion.id)
       queryClient.invalidateQueries({ queryKey: ["versions", id] })
       queryClient.invalidateQueries({ queryKey: ["query", id] })
+      toast.success(`Saved as Version ${newVersion.versionNumber}`)
+    },
+    onError: (error) => {
+      toast.error(`Failed to save version: ${error.message}`)
     },
   })
 
@@ -71,12 +81,16 @@ export function QueryDetailPage() {
   const saveToFirebaseMutation = useMutation({
     mutationFn: () => {
       if (!selectedVersionId) {
-        throw new Error("No version selected")
+        throw new Error("Please save as version first, then select it")
       }
       return saveVersionToFirebase(id!, selectedVersionId)
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["versions", id] })
+      toast.success(`Saved ${result.saved} businesses to Firebase`)
+    },
+    onError: (error) => {
+      toast.error(`Failed to save to Firebase: ${error.message}`)
     },
   })
 
@@ -104,8 +118,10 @@ export function QueryDetailPage() {
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
+      toast.success(`Exported ${previewData.length} businesses to CSV`)
     } catch (error) {
       console.error("Failed to export CSV:", error)
+      toast.error("Failed to export CSV")
     }
   }
 
@@ -173,6 +189,7 @@ export function QueryDetailPage() {
           isSaving={saveVersionMutation.isPending || saveToFirebaseMutation.isPending}
           hasData={previewData.length > 0}
           hasUnsavedData={hasUnsavedData}
+          hasSelectedVersion={!!selectedVersionId}
         />
       </div>
 

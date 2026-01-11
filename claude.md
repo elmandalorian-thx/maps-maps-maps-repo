@@ -11,7 +11,7 @@ A modern full-stack application for managing Google Maps business extraction que
 | Component | Status | URL |
 |-----------|--------|-----|
 | Frontend (GitHub Pages) | **Live** | https://elmandalorian-thx.github.io/maps-maps-maps-repo/ |
-| Backend API | **Not Deployed** | Needs Cloud Run or similar |
+| Backend API (Cloud Run) | **Live** | https://maps-query-api-6bh2oqaesa-uc.a.run.app |
 | Firebase Auth | **Working** | Google OAuth functional |
 | Firebase Firestore | **Working** | Database operational |
 
@@ -27,19 +27,37 @@ A modern full-stack application for managing Google Maps business extraction que
    - Cause: `elmandalorian-thx.github.io` not in Firebase authorized domains
    - Fix: Added domain to Firebase Console > Authentication > Settings > Authorized domains
 
+3. **Save as Version Not Working** (NEW)
+   - Issue: Button click had no effect, no feedback
+   - Cause: FastAPI endpoint had `businesses: List[dict]` without `Body()` - treated as query param
+   - Fix: Added `Body(..., embed=True)` to `backend/app/routers/queries.py`
+
+4. **Save to Firebase Not Working** (NEW)
+   - Issue: Button click had no effect, no feedback
+   - Cause: Required `selectedVersionId` but none was set after extraction
+   - Fix: Auto-select version after save, added `hasSelectedVersion` prop to ActionBar
+
+5. **Export CSV Not Working** (NEW)
+   - Issue: Same as Save as Version
+   - Cause: Same FastAPI `Body()` issue in export router
+   - Fix: Added `Body(..., embed=True)` to `backend/app/routers/export.py`
+
+6. **No User Feedback** (NEW)
+   - Issue: No success/error notifications for any actions
+   - Cause: No toast library installed
+   - Fix: Installed `sonner`, added `<Toaster>` to App.tsx, toast calls to all mutations
+
 ### Current Development Phase
 
-**Phase 4: UI/UX Redesign** - COMPLETE
-- Dark theme with glassmorphism effects
-- Modern, sleek design language
-- Professional dashboard experience
-- Login page with Google OAuth
-- Responsive layout
+**All Core Phases COMPLETE**
+- Phase 1: Project Setup
+- Phase 2: Authentication (Google OAuth)
+- Phase 3: Core Functionality (queries, extraction, versions)
+- Phase 4: UI/UX Redesign (dark theme, glassmorphism)
+- Phase 5: Export & Polish (toasts, error handling)
+- Phase 6: Deployment (GitHub Pages + Cloud Run)
 
-**Phase 5: Backend Deployment** - IN PROGRESS
-- Frontend deployed to GitHub Pages
-- Backend needs deployment to Cloud Run/Railway/Render
-- API URL needs to be configured in GitHub Secrets
+**Next Phase: Cascading Query Feature** - PLANNED
 
 ## Development Phases
 
@@ -49,9 +67,10 @@ A modern full-stack application for managing Google Maps business extraction que
 | Phase 2 | Authentication (Google OAuth via Firebase) | Complete |
 | Phase 3 | Core Functionality (queries, extraction, versions) | Complete |
 | Phase 4 | UI/UX Redesign (dark theme, glassmorphism) | Complete |
-| Phase 5 | Backend Deployment | **In Progress** |
-| Phase 6 | Cascading Query Feature | **Planned** |
-| Phase 7 | Testing, Polish & Documentation | Pending |
+| Phase 5 | Export & Polish (toasts, error handling) | Complete |
+| Phase 6 | Deployment (GitHub Pages + Cloud Run) | Complete |
+| Phase 7 | Cascading Query Feature | **Planned** |
+| Phase 8 | Testing & Documentation | Pending |
 
 ## Tech Stack
 
@@ -68,14 +87,15 @@ A modern full-stack application for managing Google Maps business extraction que
 - **Database**: Firebase Firestore
 - **Auth**: Firebase Admin SDK (token verification)
 - **Extraction**: Google Places API (New)
-- **Hosting**: Cloud Run (planned)
+- **Notifications**: Sonner (toast library)
+- **Hosting**: Google Cloud Run
 
 ### Infrastructure
 - **Auth Provider**: Firebase Authentication
 - **Database**: Firebase Firestore
 - **Frontend Hosting**: GitHub Pages
-- **Backend Hosting**: Cloud Run (planned)
-- **CI/CD**: GitHub Actions
+- **Backend Hosting**: Google Cloud Run
+- **CI/CD**: GitHub Actions (auto-deploy on push to main)
 
 ## Project Structure
 
@@ -200,34 +220,40 @@ VITE_FIREBASE_APP_ID
 VITE_API_URL              # Set to deployed backend URL
 ```
 
-## Next Steps - Phase 5: Backend Deployment
+## Deployment Complete
 
-### Option A: Google Cloud Run (Recommended)
-1. Create a `Dockerfile` in `/backend`
-2. Build and push image to Google Container Registry
-3. Deploy to Cloud Run
-4. Configure environment variables in Cloud Run
-5. Update `VITE_API_URL` GitHub Secret with Cloud Run URL
-6. Add Cloud Run URL to Firebase Auth authorized domains
-7. Redeploy frontend
+### Backend Deployment (Cloud Run)
+- [x] Created `Dockerfile` in `/backend`
+- [x] Created `.github/workflows/deploy-backend.yml`
+- [x] Configured Cloud Build API, Artifact Registry
+- [x] Set environment variables via base64-encoded secrets
+- [x] Updated `VITE_API_URL` in GitHub Secrets
+- [x] Added Cloud Run URL to Firebase Auth authorized domains
+- [x] Tested full flow end-to-end
 
-### Option B: Railway/Render
-1. Connect GitHub repo to Railway/Render
-2. Configure build settings for FastAPI
-3. Set environment variables
-4. Get deployment URL
-5. Update `VITE_API_URL` GitHub Secret
-6. Add URL to Firebase Auth authorized domains
-7. Redeploy frontend
+### Frontend Deployment (GitHub Pages)
+- [x] Created `.github/workflows/deploy.yml`
+- [x] Configured Firebase secrets in GitHub
+- [x] SPA routing with 404.html fallback
+- [x] Auto-deploy on push to main
 
-### Backend Deployment Checklist
-- [ ] Create Dockerfile for backend
-- [ ] Set up Cloud Run / Railway / Render
-- [ ] Configure CORS for production domain
-- [ ] Set environment variables (API keys, Firebase credentials)
-- [ ] Update `VITE_API_URL` in GitHub Secrets
-- [ ] Add backend domain to Firebase authorized domains
-- [ ] Test full flow end-to-end
+### Required GitHub Secrets
+```
+# Frontend (Firebase)
+VITE_FIREBASE_API_KEY
+VITE_FIREBASE_AUTH_DOMAIN
+VITE_FIREBASE_PROJECT_ID
+VITE_FIREBASE_STORAGE_BUCKET
+VITE_FIREBASE_MESSAGING_SENDER_ID
+VITE_FIREBASE_APP_ID
+VITE_API_URL=https://maps-query-api-6bh2oqaesa-uc.a.run.app
+
+# Backend (Cloud Run)
+GCP_PROJECT_ID
+GCP_SA_KEY (service account JSON)
+GOOGLE_MAPS_API_KEY
+FIREBASE_CREDENTIALS (Firebase Admin SDK JSON)
+```
 
 ## UI Design System
 
