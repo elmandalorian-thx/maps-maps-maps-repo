@@ -37,6 +37,17 @@ class Business(BaseModel):
     search_query: Optional[str] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
+    # New fields for position ranking
+    google_position: Optional[int] = None      # Position in Google Maps results (1, 2, 3...)
+    custom_position: Optional[int] = None      # User-defined position for sorting
+    # New fields for directory integration
+    base_term: Optional[str] = None            # The base search term (e.g., "naturopathic doctor")
+    source_query_id: Optional[str] = None      # Reference to the local query
+    source_version_id: Optional[str] = None    # Reference to the version
+    is_latest_version: bool = False            # Flag for directory display
+    # Data quality fields
+    data_quality_score: Optional[int] = None   # Completeness score (0-100)
+    missing_fields: Optional[List[str]] = None # List of fields that are empty/missing
 
 
 class BusinessesResponse(BaseModel):

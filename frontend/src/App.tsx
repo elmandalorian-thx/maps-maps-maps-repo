@@ -7,6 +7,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 import { LoginPage } from "@/pages/LoginPage"
 import { DashboardPage } from "@/pages/DashboardPage"
 import { QueryDetailPage } from "@/pages/QueryDetailPage"
+import { QuarryPage } from "@/pages/QuarryPage"
 import { useAuthStore } from "@/stores/authStore"
 
 const queryClient = new QueryClient({
@@ -46,6 +47,7 @@ function App() {
             >
               <Route index element={<DashboardPage />} />
               <Route path="query/:id" element={<QueryDetailPage />} />
+              <Route path="quarry" element={<QuarryPage />} />
             </Route>
           </Routes>
         </AuthInitializer>

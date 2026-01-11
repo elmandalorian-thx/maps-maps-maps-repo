@@ -8,6 +8,7 @@ import { StatusBadge } from "@/components/dashboard/StatusBadge"
 import { DataPreviewTable } from "@/components/query-detail/DataPreviewTable"
 import { VersionHistory } from "@/components/query-detail/VersionHistory"
 import { ActionBar } from "@/components/query-detail/ActionBar"
+import { QualityReportCard } from "@/components/query-detail/QualityReportCard"
 import { LoadingSpinner, LoadingPage } from "@/components/common/LoadingSpinner"
 import {
   fetchQuery,
@@ -228,23 +229,39 @@ export function QueryDetailPage() {
                 </div>
               </div>
             ) : (
-              <DataPreviewTable businesses={previewData} />
+              <DataPreviewTable
+                businesses={previewData}
+                onPositionsUpdated={(updatedBusinesses) => {
+                  setPreviewData(updatedBusinesses)
+                  setHasUnsavedData(true)
+                }}
+              />
             )}
           </div>
         </div>
 
-        {/* Version History Sidebar */}
-        <div className="glass-card rounded-2xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-white/5">
-            <h2 className="font-semibold">Versions</h2>
+        {/* Right Sidebar */}
+        <div className="space-y-6">
+          {/* Version History */}
+          <div className="glass-card rounded-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-white/5">
+              <h2 className="font-semibold">Versions</h2>
+            </div>
+            <div className="p-4">
+              <VersionHistory
+                queryId={id!}
+                versions={versions}
+                selectedVersionId={selectedVersionId}
+                onSelectVersion={handleSelectVersion}
+              />
+            </div>
           </div>
-          <div className="p-4">
-            <VersionHistory
-              versions={versions}
-              selectedVersionId={selectedVersionId}
-              onSelectVersion={handleSelectVersion}
-            />
-          </div>
+
+          {/* Data Quality Report */}
+          <QualityReportCard
+            queryId={id!}
+            versionId={selectedVersionId}
+          />
         </div>
       </div>
     </div>

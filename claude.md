@@ -57,7 +57,7 @@ A modern full-stack application for managing Google Maps business extraction que
 - Phase 5: Export & Polish (toasts, error handling)
 - Phase 6: Deployment (GitHub Pages + Cloud Run)
 
-**Next Phase: Cascading Query Feature** - PLANNED
+**Phase 7 COMPLETE: Enterprise Scale - Quarry System** - ALL PHASES (7a-7h) IMPLEMENTED
 
 ## Development Phases
 
@@ -69,7 +69,15 @@ A modern full-stack application for managing Google Maps business extraction que
 | Phase 4 | UI/UX Redesign (dark theme, glassmorphism) | Complete |
 | Phase 5 | Export & Polish (toasts, error handling) | Complete |
 | Phase 6 | Deployment (GitHub Pages + Cloud Run) | Complete |
-| Phase 7 | Cascading Query Feature | **Planned** |
+| **Phase 7** | **Enterprise Scale - Quarry System** | **Complete** |
+| Phase 7a | Database Schema Update (base_terms, local_queries, positions) | **Complete** |
+| Phase 7b | Quarry Dashboard Frontend (base terms, bulk generation UI) | **Complete** |
+| Phase 7c | Quarry Dashboard Backend (CRUD, bulk generation API) | **Complete** |
+| Phase 7d | Local Queries Dashboard Update (compact UI, filters, bulk actions) | **Complete** |
+| Phase 7e | Position Ranking & Sorting (googlePosition, customPosition, drag-drop) | **Complete** |
+| Phase 7f | Latest Version & Directory Publishing (isLatest flag, publish action) | **Complete** |
+| Phase 7g | Async Queue System (in-memory queue, pause/resume, retry failed) | **Complete** |
+| Phase 7h | Data Quality & Cleanup (normalization, deduplication, validation) | **Complete** |
 | Phase 8 | Testing & Documentation | Pending |
 
 ## Tech Stack
@@ -300,104 +308,247 @@ FIREBASE_CREDENTIALS (Firebase Admin SDK JSON)
 - Add frontend domain to backend's `CORS_ORIGINS`
 - For Cloud Run: update environment variable
 
-## Phase 6: Cascading Query Feature + Scale Architecture
+## Phase 7: Enterprise Scale Architecture - "Quarry" System
 
 ### Overview
-Add hierarchical location selectors (Country > Province/State > City) with cascading checkbox functionality to bulk-create queries across multiple locations. Designed for **enterprise scale** - thousands of keywords across 1,280+ locations.
+A two-tier system designed for **enterprise scale** - 10,000+ records per month. The "Quarry" is the top-level dashboard for managing base search terms and generating thousands of location-specific queries in bulk.
 
-### Location Data
-Location data is stored in `frontend/src/data/locations.ts`:
-- **Canada**: 13 provinces/territories, 20 cities each (by population)
-- **United States**: 50 states + DC, 20 cities each (by population)
-- **Total**: ~1,280 cities with comprehensive coverage
+### System Hierarchy
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         QUARRY DASHBOARD                            │
+│   Base Terms: "naturopathic doctor", "osteopath", "chiropractor"   │
+│   → Generate thousands of Local Queries with one click              │
+└─────────────────────────────────────────────────────────────────────┘
+                                   │
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                     LOCAL QUERIES DASHBOARD                         │
+│   "naturopathic doctor Oakville", "naturopathic doctor Philadelphia"│
+│   → Geo filters, status tracking, batch processing                  │
+└─────────────────────────────────────────────────────────────────────┘
+                                   │
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                       QUERY DETAIL PAGE                             │
+│   Run extraction, Save versions, Export CSV, Data preview           │
+│   → Business data with Google Maps position ranking                 │
+└─────────────────────────────────────────────────────────────────────┘
+                                   │
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                    BUSINESS DIRECTORY (External)                    │
+│   Clean, deduplicated data for public directory                     │
+│   → Only latest version, shared Firestore database                  │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
 ### Design Goals
-- **Scale**: Support thousands of keywords × 1,280 locations = millions of potential queries
-- **Performance**: Async processing, background jobs, queue management
-- **UX**: Compact 3-column layout, real-time status updates, zero babysitting
+- **Scale**: 10,000+ records/month, thousands of keywords × 1,280 locations
+- **Efficiency**: Generate 1,000+ queries with a single form submission
+- **Clean Data**: Position ranking, deduplication, latest-version tracking
+- **Directory Ready**: Shared database structure for external business directory
 
 ---
 
-### Feature Requirements
+## Tier 1: Quarry Dashboard (Base Terms Management)
 
-#### 1. Compact Dashboard UI (3-Column Layout)
-- **Query cards at 50% current size** - Fit 3 columns on page
-- **Dense information display** - Status badge, location, keyword visible at glance
-- **Color-coded status**: Pending (gray), Running (blue pulse), Complete (green), Error (red)
-- **Bulk selection** - Select multiple queries for batch actions
+### Purpose
+Manage base search terms and bulk-generate location-specific Local Queries.
 
-#### 2. Add Query Dialog Enhancement
-- **Country Selector**: Dropdown with Canada and United States
-- **Province/State Selector**: Cascading dropdown based on selected country
-- **City Selector**: Cascading dropdown based on selected province/state
-- **Cascade Checkbox**: When ticked, expands the query to multiple locations
-- **Duplicate Detection**:
-  - Check if query already exists before creation
-  - Show error modal with link to existing query
-  - "View Existing Query" button navigates to query detail page
+### Features
 
-#### 3. Cascading Logic
-| Checkbox State | Selection | Result |
-|----------------|-----------|--------|
-| Unchecked | Canada > Ontario > Kingston | Creates 1 query for Kingston, ON |
-| Checked | Canada > Ontario > Kingston | Creates 20 queries (all Ontario cities) |
-| Checked | Canada > Ontario > (none) | Creates 20 queries (all Ontario cities) |
-| Checked | Canada > (none) > (none) | Creates ~260 queries (all Canadian cities) |
-| Checked | (none) > (none) > (none) | Creates ~1,280 queries (all cities) |
+#### 1.1 Base Terms List
+- Display all base terms: "naturopathic doctor", "osteopath", "chiropractor", etc.
+- Show stats per term: total queries generated, pending, complete, error count
+- Quick actions: Generate queries, View local queries, Delete term
 
-#### 4. Async Queue System (Fire & Forget)
-- **Queue-based processing**: Hit play, walk away
-- **Background worker**: Processes queries sequentially or in batches
-- **Firebase real-time updates**: Status changes reflected instantly
-- **Batch operations**: Run all pending, pause all, retry failed
-- **Progress persistence**: Survives page refresh, browser close
+#### 1.2 Create New Base Term
+- Simple text input for the base term
+- Optional: category/tags for organization
+- Saves to Firestore `base_terms` collection
 
-#### 5. Dashboard Filter Enhancement
-- Add Country filter dropdown
-- Add Province/State filter dropdown (cascades based on country)
-- Add City filter dropdown (cascades based on province/state)
-- Add Status filter (Pending, Running, Complete, Error)
-- Add Keyword search
+#### 1.3 Bulk Query Generation Form
+When clicking "Generate Queries" on a base term:
+
+| Field | Type | Behavior |
+|-------|------|----------|
+| **Countries** | Multi-select + "All" checkbox | Select one or more countries, or check "All" |
+| **Provinces/States** | Multi-select + "All" checkbox | Shows "Province Name - CC" format (e.g., "Ontario - CA", "Texas - US"). Filtered by selected countries. |
+| **Cities** | Multi-select + "All" checkbox | Shows "City, Province - CC" format. Filtered by selected provinces. |
+
+#### 1.4 Generation Preview
+Before executing:
+- Show estimated query count (e.g., "This will create 1,280 queries")
+- Show estimated API cost (e.g., "$41.00 at $32/1000 requests")
+- Confirmation modal for >50 queries
+- Progress bar during creation
+- Ability to cancel mid-operation
+
+#### 1.5 Duplicate Detection
+- Check existing Local Queries before creation
+- Skip duplicates silently OR show summary: "Created 1,200 queries, skipped 80 duplicates"
+- Option to regenerate/overwrite existing queries
 
 ---
 
-### Technical Architecture
+## Tier 2: Local Queries Dashboard (Geographic Variations)
 
-#### Queue System Design
-```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│   Frontend      │────▶│   Backend API    │────▶│   Firebase      │
-│   (React)       │     │   (FastAPI)      │     │   (Firestore)   │
-└─────────────────┘     └──────────────────┘     └─────────────────┘
-        │                       │                        │
-        │                       ▼                        │
-        │               ┌──────────────────┐             │
-        │               │  Background      │             │
-        │               │  Worker/Queue    │◀────────────┘
-        │               │  (Celery/Redis   │
-        │               │   or Firebase    │
-        │               │   Cloud Tasks)   │
-        │               └──────────────────┘
-        │                       │
-        └───────────────────────┘
-              Real-time updates via
-              Firestore listeners
+### Purpose
+Manage and process all location-specific queries for a base term.
+
+### Navigation
+- Click base term in Quarry → Opens Local Queries filtered to that term
+- Direct access shows all Local Queries with filters
+
+### Features
+
+#### 2.1 Compact Query Cards (3-Column Layout)
+- **50% current size** - Fit 3 columns on page
+- Dense info display: keyword, city, province, country, status badge
+- Color-coded status:
+  - `pending` - Gray
+  - `queued` - Blue outline
+  - `running` - Blue pulse animation
+  - `complete` - Green
+  - `error` - Red
+
+#### 2.2 Geo Filters
+| Filter | Type | Notes |
+|--------|------|-------|
+| Country | Dropdown | Canada, United States, All |
+| Province/State | Cascading dropdown | Based on country selection |
+| City | Cascading dropdown | Based on province selection |
+| Status | Multi-select | Pending, Queued, Running, Complete, Error |
+| Keyword Search | Text input | Filter by base term |
+
+#### 2.3 Bulk Actions
+- **Run All Pending** - Queue all pending queries for processing
+- **Pause All** - Stop queue processing
+- **Retry Failed** - Re-queue all error queries
+- **Delete Selected** - Bulk delete with confirmation
+- **Select All / Deselect All** - Checkbox management
+
+#### 2.4 Click-Through to Query Detail
+Clicking a Local Query opens the existing Query Detail page with:
+- Run Extraction button
+- Data Preview table
+- Save as Version
+- Export CSV
+- Version History
+
+---
+
+## Tier 3: Query Detail Page (Enhanced)
+
+### Existing Features (Keep)
+- Run Extraction
+- Data Preview Table
+- Save as Version
+- Export CSV
+- Version History
+
+### New Features
+
+#### 3.1 Google Maps Position Ranking
+Each business record includes:
+```typescript
+interface Business {
+  id: string;
+  name: string;
+  address: string;
+  phone: string;
+  website: string;
+  rating: number;
+  reviewCount: number;
+  // NEW FIELDS
+  googlePosition: number;      // Position in Google Maps results (1, 2, 3...)
+  customPosition: number;      // User-defined position for sorting
+  isLatestVersion: boolean;    // Flag for directory display
+}
 ```
 
-#### Query States
-| State | Description |
-|-------|-------------|
-| `pending` | Created, waiting in queue |
-| `queued` | Added to processing queue |
-| `running` | Currently extracting data |
-| `complete` | Extraction finished, data saved |
-| `error` | Failed with error message |
-| `paused` | Manually paused by user |
+#### 3.2 Position Management
+- Default sort by `googlePosition` (as returned by Google)
+- Drag-and-drop to reorder (updates `customPosition`)
+- Toggle between Google order and Custom order
+- Reset to Google order button
 
-#### Firestore Collections (Updated)
+#### 3.3 Latest Version Flag
+- Mark version as "Latest" for directory display
+- Only one version can be "Latest" per query
+- Auto-mark new extractions as "Latest" (configurable)
+
+---
+
+## Business Directory Integration
+
+### Shared Database Structure
+The business directory (separate project) will read from the same Firestore:
+
 ```
-queries/{queryId}
-  - keyword: string
+businesses/{businessId}
+  - name: string
+  - address: string
+  - city: string
+  - province: string
+  - country: string
+  - phone: string
+  - website: string
+  - rating: number
+  - reviewCount: number
+  - googlePosition: number
+  - customPosition: number
+  - category: string (base term)
+  - sourceQueryId: string
+  - sourceVersionId: string
+  - isLatestVersion: boolean
+  - createdAt: timestamp
+  - updatedAt: timestamp
+  - placeId: string (Google Places ID for deduplication)
+```
+
+### Directory Query Pattern
+```javascript
+// Get latest businesses for a category in a city
+db.collection('businesses')
+  .where('category', '==', 'naturopathic doctor')
+  .where('city', '==', 'Oakville')
+  .where('isLatestVersion', '==', true)
+  .orderBy('customPosition', 'asc')
+```
+
+### Data Cleanliness Rules
+- Deduplicate by `placeId` (Google's unique identifier)
+- Normalize phone numbers to E.164 format
+- Validate website URLs
+- Trim and normalize addresses
+- Flag incomplete records (missing phone, website, etc.)
+
+---
+
+## Technical Architecture
+
+### Firestore Collections (Complete)
+
+```
+base_terms/{termId}
+  - term: string ("naturopathic doctor")
+  - category: string (optional)
+  - createdAt: timestamp
+  - userId: string
+  - stats: {
+      totalQueries: number,
+      pendingQueries: number,
+      completeQueries: number,
+      errorQueries: number
+    }
+
+local_queries/{queryId}
+  - baseTermId: string (reference to base_terms)
+  - keyword: string ("naturopathic doctor oakville")
+  - baseTerm: string ("naturopathic doctor")
   - city: string
   - province: string
   - country: string
@@ -407,98 +558,240 @@ queries/{queryId}
   - completedAt: timestamp | null
   - error: string | null
   - resultCount: number
+  - latestVersionId: string | null
   - userId: string
 
-queries/{queryId}/versions/{versionId}
-  - Same as before
-
-queue_jobs/{jobId}
-  - queryIds: string[]  // Batch of queries
-  - status: 'pending' | 'processing' | 'complete' | 'failed'
-  - progress: { completed: number, total: number }
+local_queries/{queryId}/versions/{versionId}
   - createdAt: timestamp
-  - userId: string
+  - resultCount: number
+  - isLatest: boolean
+
+local_queries/{queryId}/versions/{versionId}/businesses/{businessId}
+  - (all business fields)
+  - googlePosition: number
+  - customPosition: number
+
+businesses/{businessId}  (denormalized for directory)
+  - (all business fields)
+  - sourceQueryId: string
+  - sourceVersionId: string
+  - isLatestVersion: boolean
 ```
 
+### Queue System Design
+
+```
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│   Quarry UI     │────▶│   Backend API    │────▶│   Firestore     │
+│   (React)       │     │   (FastAPI)      │     │   (Database)    │
+└─────────────────┘     └──────────────────┘     └─────────────────┘
+        │                       │                        │
+        │                       ▼                        │
+        │               ┌──────────────────┐             │
+        │               │  Cloud Tasks     │             │
+        │               │  Queue Worker    │◀────────────┘
+        │               │  (Background)    │
+        │               └──────────────────┘
+        │                       │
+        └───────────────────────┘
+              Real-time updates via
+              Firestore onSnapshot listeners
+```
+
+### API Endpoints (New/Updated)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| **Base Terms** |||
+| GET | `/api/base-terms` | List all base terms with stats |
+| POST | `/api/base-terms` | Create new base term |
+| DELETE | `/api/base-terms/{id}` | Delete base term and all queries |
+| POST | `/api/base-terms/{id}/generate` | Bulk generate Local Queries |
+| **Local Queries** |||
+| GET | `/api/local-queries` | List with geo filters, pagination |
+| GET | `/api/local-queries/{id}` | Get single query with latest version |
+| DELETE | `/api/local-queries/{id}` | Delete query and versions |
+| POST | `/api/local-queries/bulk-run` | Queue multiple queries for extraction |
+| POST | `/api/local-queries/bulk-delete` | Delete multiple queries |
+| **Extraction** |||
+| POST | `/api/local-queries/{id}/extract` | Run extraction (existing) |
+| **Versions** |||
+| GET | `/api/local-queries/{id}/versions` | Get version history |
+| POST | `/api/local-queries/{id}/versions` | Save as new version |
+| PATCH | `/api/local-queries/{id}/versions/{vid}` | Update version (set as latest) |
+| **Businesses** |||
+| PATCH | `/api/businesses/{id}/position` | Update custom position |
+| POST | `/api/local-queries/{id}/versions/{vid}/publish` | Copy to main businesses collection |
+| **Queue** |||
+| GET | `/api/queue/status` | Get queue stats (pending, running, etc.) |
+| POST | `/api/queue/pause` | Pause all processing |
+| POST | `/api/queue/resume` | Resume processing |
+
 ---
 
-### Implementation Checklist
+## Implementation Phases
 
-#### Phase 6a: Location & Duplicate Detection
-- [x] Create location data file (`frontend/src/data/locations.ts`)
-- [ ] Trim US states to 20 cities each
-- [ ] Update AddQueryDialog with location selectors
-- [ ] Implement cascading dropdown logic
-- [ ] Add duplicate query detection with navigation prompt
+### Phase 7a: Database Schema Update - COMPLETE
+- [x] Create `base_terms` collection structure (Pydantic models)
+- [x] Add `googlePosition`, `customPosition` to business records
+- [x] Add `isLatestVersion` flag to versions and businesses
+- [x] Add `baseTermId` reference to local queries
+- [ ] Rename `queries` to `local_queries` (migration script) - DEFERRED
+- [ ] Create Firestore indexes for new query patterns - DEFERRED
 
-#### Phase 6b: Compact UI
-- [ ] Redesign QueryCard to 50% size
-- [ ] Implement 3-column responsive grid
-- [ ] Add compact status indicators
-- [ ] Add bulk selection checkboxes
+### Phase 7b: Quarry Dashboard (Frontend) - COMPLETE
+- [x] Create `/quarry` route and page
+- [x] Build BaseTermsList component
+- [x] Build CreateBaseTermDialog
+- [x] Build BulkGenerateDialog with:
+  - [x] Country multi-select with "All" checkbox
+  - [x] Province multi-select showing "Name - CC" format
+  - [x] City multi-select with cascading filter
+  - [x] Query count preview
+  - [x] Cost estimation display
+  - [x] Progress indicator during generation
+- [x] Add navigation between Quarry and Local Queries
+- [x] Build QueueStatusBar component
 
-#### Phase 6c: Async Queue System
-- [ ] Design queue system architecture
-- [ ] Implement queue API endpoints
-- [ ] Add background worker (Cloud Tasks or Celery)
-- [ ] Implement Firestore real-time listeners
-- [ ] Add batch operations (run all, pause all, retry failed)
-- [ ] Add progress indicators and ETA
+### Phase 7c: Quarry Dashboard (Backend) - COMPLETE
+- [x] Create `base_terms` router with CRUD endpoints
+- [x] Implement `/generate` endpoint for bulk Local Query creation
+- [x] Add duplicate detection logic
+- [x] Implement batch writes (500 at a time for Firestore limits)
+- [x] Add stats calculation for base terms
 
-#### Phase 6d: Dashboard Filters
-- [ ] Add Country filter dropdown
-- [ ] Add Province/State filter dropdown
-- [ ] Add City filter dropdown
-- [ ] Add Status filter
-- [ ] Add Keyword search
-- [ ] Implement filter persistence (URL params or localStorage)
+### Phase 7d: Local Queries Dashboard Update - COMPLETE
+- [x] Redesign QueryCard to 50% size (compact)
+- [x] Implement 4-column responsive grid
+- [x] Add geo filter dropdowns (Country, Province, City)
+- [x] Add Status filter with all statuses (pending, queued, running, completed, error)
+- [x] Add Keyword search with debouncing
+- [x] Add bulk selection checkboxes
+- [x] Add bulk action buttons (Run All, Delete Selected)
+- [x] Add baseTermId filter support via URL params
+- [ ] Implement filter persistence (localStorage) - DEFERRED
+- [ ] Add pagination/virtualization for 10,000+ queries - DEFERRED
+
+### Phase 7e: Position Ranking & Sorting - COMPLETE
+- [x] Capture `googlePosition` during extraction (index in results)
+- [x] Add `customPosition` field with default = googlePosition
+- [x] Build drag-and-drop reordering in Data Preview table
+- [x] Add sort toggle (Google Order / Custom Order)
+- [x] Create PATCH endpoint for position updates (`/api/businesses/{id}/position`)
+
+### Phase 7f: Latest Version & Directory Publishing - COMPLETE
+- [x] Add "Set as Latest" button to version history
+- [x] Implement "Publish to Directory" action
+- [x] Create denormalized copy in `businesses` collection
+- [x] Add `isLatestVersion` filtering
+- [x] Ensure only one "Latest" per query
+
+### Phase 7g: Async Queue System - COMPLETE
+- [x] Create in-memory queue service (can upgrade to Cloud Tasks later)
+- [x] Create queue endpoints (add, pause, resume, retry-failed)
+- [x] Add queue status dashboard widget with controls
+- [x] Implement pause/resume functionality
+- [x] Add retry failed queries button
+- [x] Integrate bulk run with queue system
+
+### Phase 7h: Data Quality & Cleanup - COMPLETE
+- [x] Add phone number normalization (E.164 format)
+- [x] Add URL validation and normalization
+- [x] Implement deduplication detection by `placeId`
+- [x] Add data quality scoring (0-100)
+- [x] Create DataQualityBadge component
+- [x] Create QualityReportCard component
+- [x] Add quality report endpoint
 
 ---
 
-### Scale Considerations
+## Scale Considerations
 
-#### Performance Optimizations
-- **Pagination**: Virtualized list for 10,000+ queries
-- **Batch writes**: Create queries in batches of 500
-- **Firestore indexes**: Compound indexes for filter combinations
-- **Caching**: Cache location data, filter options
-- **Debouncing**: Debounce filter changes, search input
+### Performance Targets
+- **Query Generation**: 1,000 queries in <10 seconds
+- **Dashboard Load**: <2 seconds for 10,000 queries (paginated)
+- **Extraction Queue**: 1-2 queries/second (API rate limits)
+- **Monthly Capacity**: 10,000+ new business records
 
-#### Rate Limiting
+### Firestore Optimization
+- **Compound Indexes**:
+  - `local_queries`: (userId, baseTerm, country, status)
+  - `local_queries`: (userId, country, province, city)
+  - `businesses`: (category, city, isLatestVersion)
+- **Batch Writes**: Max 500 operations per batch
+- **Pagination**: Cursor-based with `startAfter()`
+- **Denormalization**: Duplicate data for read performance
+
+### Rate Limiting
 - **Google Places API**: 100 QPS limit
-- **Batch processing**: 1-2 queries per second with delays
-- **Retry logic**: Exponential backoff for failures
-- **Cost awareness**: Show estimated API cost before bulk operations
+- **Queue Throttling**: 1-2 extractions per second
+- **Retry Logic**: Exponential backoff (1s, 2s, 4s, 8s, max 60s)
+- **Cost Controls**: Daily budget alerts, pause on threshold
 
-#### Monitoring
-- **Dashboard stats**: Total queries, pending, running, complete, failed
-- **Cost tracker**: Running total of API costs
-- **Error aggregation**: Group similar errors for bulk retry
+### Monitoring
+- **Dashboard Stats Widget**:
+  - Total base terms
+  - Total local queries (by status)
+  - Queue depth and ETA
+  - API costs this month
+  - Errors requiring attention
 
 ---
 
-### Data Structure
+## UI/UX Flow
+
+### User Journey: Creating 1,000 Queries
+
+1. **Quarry Dashboard** → Click "New Base Term"
+2. Enter "naturopathic doctor" → Save
+3. Click "Generate Queries" on the new term
+4. Select Countries: ✓ Canada, ✓ United States
+5. Select Provinces: ✓ All (shows 64 provinces/states)
+6. Select Cities: ✓ All (shows 1,280 cities)
+7. Preview: "This will create 1,280 queries. Estimated cost: $41.00"
+8. Click "Generate" → Progress bar shows creation
+9. Complete: "Created 1,280 queries. 0 duplicates skipped."
+10. Click "View Local Queries" → Filtered dashboard
+11. Click "Run All Pending" → Queue starts processing
+12. Real-time updates show status changes
+13. Click any completed query → View results, save version
+
+### User Journey: Updating for Directory
+
+1. **Local Queries Dashboard** → Filter by Status: Complete
+2. Click a query → Query Detail page
+3. Review Data Preview → Drag to reorder positions
+4. Click "Save as Version" → New version created
+5. Click "Set as Latest" on the version
+6. Click "Publish to Directory" → Copied to businesses collection
+7. Business directory now shows updated data
+
+---
+
+## Data Structures
+
+### TypeScript Interfaces
+
 ```typescript
-interface City {
-  name: string;
-  population?: number;
-}
-
-interface Province {
-  name: string;
-  code: string;
-  cities: City[];
-}
-
-interface Country {
-  name: string;
-  code: string;
-  provinces: Province[];
-}
-
-interface Query {
+interface BaseTerm {
   id: string;
-  keyword: string;
+  term: string;
+  category?: string;
+  createdAt: Date;
+  userId: string;
+  stats: {
+    totalQueries: number;
+    pendingQueries: number;
+    completeQueries: number;
+    errorQueries: number;
+  };
+}
+
+interface LocalQuery {
+  id: string;
+  baseTermId: string;
+  keyword: string;         // "naturopathic doctor oakville"
+  baseTerm: string;        // "naturopathic doctor"
   city: string;
   province: string;
   country: string;
@@ -508,22 +801,114 @@ interface Query {
   completedAt?: Date;
   error?: string;
   resultCount?: number;
+  latestVersionId?: string;
+  userId: string;
+}
+
+interface QueryVersion {
+  id: string;
+  createdAt: Date;
+  resultCount: number;
+  isLatest: boolean;
+}
+
+interface Business {
+  id: string;
+  placeId: string;          // Google Places ID (for deduplication)
+  name: string;
+  address: string;
+  city: string;
+  province: string;
+  country: string;
+  phone: string;            // E.164 format
+  website: string;
+  rating: number;
+  reviewCount: number;
+  googlePosition: number;   // Position in Google results
+  customPosition: number;   // User-defined sort order
+  category: string;         // Base term
+  sourceQueryId: string;
+  sourceVersionId: string;
+  isLatestVersion: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface BulkGenerateRequest {
+  baseTermId: string;
+  countries: string[];      // ['CA', 'US'] or ['ALL']
+  provinces: string[];      // ['ON', 'TX'] or ['ALL']
+  cities: string[];         // ['Oakville', 'Austin'] or ['ALL']
+}
+
+interface QueueStatus {
+  pending: number;
+  queued: number;
+  running: number;
+  complete: number;
+  error: number;
+  estimatedTimeRemaining: number; // seconds
+  currentlyProcessing?: string;   // query ID
 }
 ```
 
-### Helper Functions Available
-- `getCountries()` - Returns list of all countries
-- `getProvinces(countryCode)` - Returns provinces for a country
-- `getCities(countryCode, provinceAbbr)` - Returns cities for a province
-- `getAllCitiesInCountry(countryCode)` - Returns all cities in a country
-- `getAllCitiesInProvince(countryCode, provinceAbbr)` - Returns all cities in a province
+### Location Data Helpers
+```typescript
+// Existing helpers (from frontend/src/data/locations.ts)
+getCountries(): Country[]
+getProvinces(countryCode: string): Province[]
+getCities(countryCode: string, provinceCode: string): City[]
+getAllCitiesInCountry(countryCode: string): City[]
+getAllCitiesInProvince(countryCode: string, provinceCode: string): City[]
 
-### UI/UX Considerations
-- Show estimated query count before cascade execution
-- Confirmation modal for large cascade operations (>50 queries)
-- Progress bar during bulk query creation
-- Ability to cancel mid-operation
-- Clear visual indication of cascade mode
-- **Real-time status updates** - No refresh needed
-- **Estimated completion time** - Based on queue position and avg processing time
-- **Cost estimation** - Show projected API costs before execution
+// New helpers needed
+formatProvinceOption(province: Province, country: Country): string
+  // Returns "Ontario - CA" or "Texas - US"
+
+formatCityOption(city: City, province: Province, country: Country): string
+  // Returns "Oakville, Ontario - CA"
+
+getCitiesForSelection(countries: string[], provinces: string[]): City[]
+  // Returns filtered list based on selections
+
+estimateQueryCount(countries: string[], provinces: string[], cities: string[]): number
+  // Calculates total queries that would be created
+
+estimateApiCost(queryCount: number): number
+  // Returns cost in dollars based on $32/1000 rate
+```
+
+---
+
+## Cost Estimation
+
+### API Costs (Google Places)
+| Operation | Cost per 1,000 | Monthly @ 10K |
+|-----------|----------------|---------------|
+| Text Search | $32.00 | $320.00 |
+| Place Details | $17.00 | $170.00 |
+| **Total** | $49.00 | **$490.00** |
+
+### Free Tier Credits
+- Google Maps: $200/month free
+- Net cost @ 10K records: ~$290/month
+
+### Firebase Costs
+- Firestore reads: 50K/day free (sufficient)
+- Firestore writes: 20K/day free (may need upgrade)
+- At 10K records/month: ~1K writes/day (within free tier)
+
+---
+
+## Migration Notes
+
+### Renaming `queries` → `local_queries`
+1. Create new `local_queries` collection
+2. Copy all documents with new fields:
+   - Add `baseTermId: null` (legacy queries)
+   - Add `baseTerm: keyword.split(' ')[0]` (best guess)
+   - Add `latestVersionId: null`
+3. Update all frontend references
+4. Update all backend references
+5. Keep `queries` as backup for 30 days
+6. Delete old collection after verification

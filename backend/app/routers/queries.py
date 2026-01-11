@@ -196,3 +196,72 @@ async def save_version_to_firebase(
         )
     result = firebase.save_version_to_main(query_id, version_id)
     return result
+
+
+@router.patch("/{query_id}/versions/{version_id}/latest")
+async def set_version_as_latest(
+    query_id: str,
+    version_id: str,
+    current_user: TokenData = Depends(get_current_user),
+    firebase: FirebaseService = Depends(get_firebase_service),
+):
+    """Set a version as the latest version for a query.
+
+    This clears the isLatest flag from all other versions and sets it
+    on the specified version. Only one version per query can be 'latest'.
+    """
+    query = firebase.get_query(query_id)
+    if not query:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Query not found",
+        )
+    if query.get("createdBy") != current_user.uid:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied",
+        )
+    try:
+        result = firebase.set_version_as_latest(query_id, version_id)
+        return QueryVersion(**result)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        )
+
+
+@router.post("/{query_id}/versions/{version_id}/publish")
+async def publish_to_directory(
+    query_id: str,
+    version_id: str,
+    current_user: TokenData = Depends(get_current_user),
+    firebase: FirebaseService = Depends(get_firebase_service),
+):
+    """Publish businesses from a version to the main directory.
+
+    This copies all businesses from the specified version to the main
+    'businesses' collection with is_latest_version=True. It also marks
+    any previously published businesses from this query as not latest.
+
+    The version is automatically set as the 'latest' version for the query.
+    """
+    query = firebase.get_query(query_id)
+    if not query:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Query not found",
+        )
+    if query.get("createdBy") != current_user.uid:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied",
+        )
+    try:
+        result = firebase.publish_to_directory(query_id, version_id)
+        return result
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        )

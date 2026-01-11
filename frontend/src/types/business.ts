@@ -33,4 +33,12 @@ export interface Business {
   search_query?: string;
   created_at?: string;
   updated_at?: string;
+  // New fields for position ranking
+  google_position?: number;
+  custom_position?: number;
+  // New fields for directory integration
+  base_term?: string;
+  source_query_id?: string;
+  source_version_id?: string;
+  is_latest_version?: boolean;
 }

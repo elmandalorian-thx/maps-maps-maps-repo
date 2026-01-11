@@ -27,6 +27,10 @@ const initialFilters: QueryFilters = {
   businessType: null,
   city: null,
   status: null,
+  province: null,
+  country: null,
+  baseTermId: null,
+  search: null,
 };
 
 export const useQueryStore = create<QueryState>((set) => ({

@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 from google_maps_extractor import GoogleMapsExtractor
 
 from ..config import settings
+from .data_quality import normalize_business
 
 
 class ExtractorService:
@@ -20,17 +21,33 @@ class ExtractorService:
         """
         Extract businesses from Google Maps for a given query.
         Returns businesses and execution time.
+
+        Each business includes:
+        - google_position: The position in search results (1-based index)
+        - custom_position: Initially set to same as google_position
         """
         start_time = time.time()
 
         # Use the existing batch_extract method
         businesses = self.extractor.batch_extract(query)
 
+        # Add position information and normalize each business
+        # Position is 1-based (first result = position 1)
+        normalized_businesses = []
+        for index, business in enumerate(businesses):
+            position = index + 1  # 1-based indexing
+            business["google_position"] = position
+            business["custom_position"] = position  # Default to same as google position
+
+            # Apply data quality normalization (phone, URL, score)
+            normalized = normalize_business(business)
+            normalized_businesses.append(normalized)
+
         execution_time = time.time() - start_time
 
         return {
-            "businesses": businesses,
-            "count": len(businesses),
+            "businesses": normalized_businesses,
+            "count": len(normalized_businesses),
             "executionTime": execution_time,
         }
 

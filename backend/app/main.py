@@ -8,6 +8,10 @@ from .routers import (
     extraction_router,
     export_router,
     metadata_router,
+    base_terms_router,
+    data_quality_router,
+    positions_router,
+    queue_router,
 )
 
 app = FastAPI(
@@ -31,6 +35,10 @@ app.include_router(queries_router, prefix="/api")
 app.include_router(extraction_router, prefix="/api")
 app.include_router(export_router, prefix="/api")
 app.include_router(metadata_router, prefix="/api")
+app.include_router(base_terms_router, prefix="/api")
+app.include_router(data_quality_router, prefix="/api")
+app.include_router(positions_router, prefix="/api")
+app.include_router(queue_router, prefix="/api")
 
 
 @app.get("/")
