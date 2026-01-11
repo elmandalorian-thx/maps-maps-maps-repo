@@ -85,7 +85,8 @@ export function QuarryPage() {
   }
 
   const handleDeleteTerm = (term: BaseTerm) => {
-    if (confirm(`Delete "${term.term}" and all ${term.stats.totalQueries} associated queries? This cannot be undone.`)) {
+    const totalQueries = term.stats?.totalQueries || 0
+    if (confirm(`Delete "${term.term}" and all ${totalQueries} associated queries? This cannot be undone.`)) {
       deleteMutation.mutate(term.id)
     }
   }

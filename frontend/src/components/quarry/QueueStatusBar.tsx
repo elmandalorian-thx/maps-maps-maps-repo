@@ -133,39 +133,39 @@ export function QueueStatusBar({ status }: QueueStatusBarProps) {
         )}
         <div
           className="bg-emerald-500 transition-all duration-500 ease-out"
-          style={{ width: `${getPercentage(status.complete)}%` }}
-          title={`Complete: ${status.complete}`}
+          style={{ width: `${getPercentage(status.complete || 0)}%` }}
+          title={`Complete: ${status.complete || 0}`}
         />
         <div
           className={`bg-blue-500 transition-all duration-500 ease-out ${hasActiveWork && !status.paused ? 'animate-pulse' : ''}`}
-          style={{ width: `${getPercentage(status.running)}%` }}
-          title={`Running: ${status.running}`}
+          style={{ width: `${getPercentage(status.running || 0)}%` }}
+          title={`Running: ${status.running || 0}`}
         />
         <div
           className="bg-blue-400/50 transition-all duration-500 ease-out"
-          style={{ width: `${getPercentage(status.queued)}%` }}
-          title={`Queued: ${status.queued}`}
+          style={{ width: `${getPercentage(status.queued || 0)}%` }}
+          title={`Queued: ${status.queued || 0}`}
         />
         <div
           className="bg-amber-500/50 transition-all duration-500 ease-out"
-          style={{ width: `${getPercentage(status.pending)}%` }}
-          title={`Pending: ${status.pending}`}
+          style={{ width: `${getPercentage(status.pending || 0)}%` }}
+          title={`Pending: ${status.pending || 0}`}
         />
         <div
           className="bg-red-500 transition-all duration-500 ease-out"
-          style={{ width: `${getPercentage(status.error)}%` }}
-          title={`Error: ${status.error}`}
+          style={{ width: `${getPercentage(status.error || 0)}%` }}
+          title={`Error: ${status.error || 0}`}
         />
       </div>
 
       {/* Stats */}
       <div className="flex items-center justify-between mt-3 text-xs">
         <div className="flex items-center gap-4">
-          <StatusBadge color="bg-emerald-500" label="Complete" value={status.complete} />
-          <StatusBadge color="bg-blue-500" label="Running" value={status.running} pulse={status.running > 0 && !status.paused} />
-          <StatusBadge color="bg-blue-400/50" label="Queued" value={status.queued} />
-          <StatusBadge color="bg-amber-500/50" label="Pending" value={status.pending} />
-          <StatusBadge color="bg-red-500" label="Error" value={status.error} />
+          <StatusBadge color="bg-emerald-500" label="Complete" value={status.complete || 0} />
+          <StatusBadge color="bg-blue-500" label="Running" value={status.running || 0} pulse={(status.running || 0) > 0 && !status.paused} />
+          <StatusBadge color="bg-blue-400/50" label="Queued" value={status.queued || 0} />
+          <StatusBadge color="bg-amber-500/50" label="Pending" value={status.pending || 0} />
+          <StatusBadge color="bg-red-500" label="Error" value={status.error || 0} />
         </div>
         <div className="flex items-center gap-3">
           {status.currentlyProcessing && !status.paused && (
@@ -196,7 +196,7 @@ function StatusBadge({ color, label, value, pulse }: StatusBadgeProps) {
     <div className="flex items-center gap-1.5">
       <div className={`w-2 h-2 rounded-full ${color} ${pulse ? 'animate-pulse' : ''}`} />
       <span className="text-muted-foreground">{label}:</span>
-      <span className="font-medium">{value.toLocaleString()}</span>
+      <span className="font-medium">{(value || 0).toLocaleString()}</span>
     </div>
   )
 }
