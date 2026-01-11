@@ -11,7 +11,7 @@ interface QueueStatusBarProps {
 
 export function QueueStatusBar({ status }: QueueStatusBarProps) {
   const queryClient = useQueryClient()
-  const total = status.pending + status.queued + status.running + status.complete + status.error
+  const total = (status.pending || 0) + (status.queued || 0) + (status.running || 0) + (status.complete || 0) + (status.error || 0)
 
   // Pause queue mutation
   const pauseMutation = useMutation({

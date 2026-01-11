@@ -65,8 +65,8 @@ interface BaseTermCardProps {
 }
 
 function BaseTermCard({ term, onGenerate, onViewQueries, onDelete }: BaseTermCardProps) {
-  const { stats } = term
-  const hasQueries = stats.totalQueries > 0
+  const stats = term.stats || { totalQueries: 0, pendingQueries: 0, completeQueries: 0, errorQueries: 0 }
+  const hasQueries = (stats.totalQueries || 0) > 0
 
   return (
     <div className="glass-card rounded-xl p-5 hover:bg-white/[0.08] transition-all duration-200 group">
@@ -108,22 +108,22 @@ function BaseTermCard({ term, onGenerate, onViewQueries, onDelete }: BaseTermCar
       <div className="grid grid-cols-2 gap-3 mb-4">
         <StatBox
           label="Total"
-          value={stats.totalQueries}
+          value={stats.totalQueries || 0}
           color="text-slate-300"
         />
         <StatBox
           label="Pending"
-          value={stats.pendingQueries}
+          value={stats.pendingQueries || 0}
           color="text-amber-400"
         />
         <StatBox
           label="Complete"
-          value={stats.completeQueries}
+          value={stats.completeQueries || 0}
           color="text-emerald-400"
         />
         <StatBox
           label="Error"
-          value={stats.errorQueries}
+          value={stats.errorQueries || 0}
           color="text-red-400"
         />
       </div>
